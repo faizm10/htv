@@ -44,12 +44,13 @@ export default function ChatPage() {
       try {
         setLoading(true);
         
-        // Get conversations from Supabase
-        const supabaseConversations = await supabaseDatabase.getConversations({ userId: 'current_user' });
+        // Fetch all conversations from Supabase (no user filter)
+        const supabaseConversations = await supabaseDatabase.getConversations();
         const legacyConversations: any[] = [];
 
         for (const conversation of supabaseConversations) {
-          const otherUserId = conversation.participants.find(id => id !== 'current_user');
+          // Get the first participant as the "other user" for display purposes
+          const otherUserId = conversation.participants[0];
           if (otherUserId) {
             const [otherUser, messages] = await Promise.all([
               supabaseDatabase.getUser(otherUserId),
@@ -75,7 +76,7 @@ export default function ChatPage() {
                 messages: messages.map(msg => ({
                   id: msg.id,
                   text: msg.content.text,
-                  sender: msg.senderId === 'current_user' ? 'me' : 'them',
+                  sender: msg.senderId === otherUserId ? 'them' : 'me', // Show messages from other user as 'them'
                   timestamp: msg.timestamp,
                   quality: msg.analysis.quality === 'engaging' ? 'playful' : msg.analysis.quality
                 })),
@@ -156,6 +157,9 @@ export default function ChatPage() {
     if (!draft.trim() || !selectedConversation) return;
 
     try {
+      // Use the first participant as the sender for now (this should be replaced with actual user auth)
+      const senderId = selectedConversation.participants[0]; // Use first participant as sender
+      
       // Analyze message dryness
       const drynessScore = analyzeDryness(draft);
       const quality = determineQuality(draft, drynessScore);
@@ -163,7 +167,7 @@ export default function ChatPage() {
       // Add message to Supabase database
       await supabaseDatabase.addMessage({
         conversationId: selectedConversation.id,
-        senderId: 'current_user',
+        senderId: senderId,
         content: {
           text: draft,
           type: 'text'

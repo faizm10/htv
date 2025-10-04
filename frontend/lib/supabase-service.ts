@@ -3,23 +3,26 @@
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { User, Conversation, Message, ConversationFilter, MessageFilter, DatabaseService } from './database-types';
-import { mockDatabase } from './mock-database-service';
 
 export class SupabaseDatabaseService implements DatabaseService {
   private supabase: SupabaseClient;
   private useMockData: boolean = false;
 
   constructor(url: string, anonKey: string) {
-    this.useMockData = url === 'https://placeholder.supabase.co' || anonKey === 'placeholder-key';
-    this.supabase = createClient(url, anonKey);
+    // Always use real Supabase data
+    this.useMockData = false;
+    
+    try {
+      this.supabase = createClient(url, anonKey);
+      console.log('✅ Supabase client initialized successfully');
+    } catch (error) {
+      console.error('Failed to create Supabase client:', error);
+      throw new Error(`Failed to initialize Supabase: ${error}`);
+    }
   }
 
   // User operations
   async getUser(userId: string): Promise<User | null> {
-    if (this.useMockData) {
-      return mockDatabase.getUser(userId);
-    }
-
     const { data, error } = await this.supabase
       .from('users')
       .select('*')
@@ -80,10 +83,6 @@ export class SupabaseDatabaseService implements DatabaseService {
   }
 
   async getConversations(filter?: ConversationFilter): Promise<Conversation[]> {
-    if (this.useMockData) {
-      return mockDatabase.getConversations(filter);
-    }
-
     let query = this.supabase
       .from('conversations')
       .select('*');
@@ -161,9 +160,6 @@ export class SupabaseDatabaseService implements DatabaseService {
 
   // Message operations
   async getMessages(filter: MessageFilter): Promise<Message[]> {
-    if (this.useMockData) {
-      return mockDatabase.getMessages(filter);
-    }
 
     let query = this.supabase
       .from('messages')
@@ -217,9 +213,6 @@ export class SupabaseDatabaseService implements DatabaseService {
   }
 
   async addMessage(message: Omit<Message, 'id'>): Promise<Message> {
-    if (this.useMockData) {
-      return mockDatabase.addMessage(message);
-    }
 
     const { data, error } = await this.supabase
       .from('messages')
@@ -288,9 +281,6 @@ export class SupabaseDatabaseService implements DatabaseService {
   }
 
   async generateSuggestions(conversationId: string, context: string): Promise<string[]> {
-    if (this.useMockData) {
-      return mockDatabase.generateSuggestions(conversationId, context);
-    }
 
     // This would integrate with your AI service
     // For now, return basic suggestions
@@ -373,18 +363,24 @@ export class SupabaseDatabaseService implements DatabaseService {
 }
 
 // Create and export singleton instance
-// You'll need to set these environment variables in your .env.local
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
+// These should be set in your .env.local file
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 // Check if we have real Supabase credentials
-const hasRealCredentials = supabaseUrl !== 'https://placeholder.supabase.co' && supabaseAnonKey !== 'placeholder-key';
-
-if (!hasRealCredentials) {
-  console.warn('⚠️  Supabase credentials not found. Using mock data mode.');
-  console.warn('   Create frontend/.env.local with your Supabase URL and anon key');
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error(`
+    ⚠️  Supabase credentials not found!
+    
+    Please create a .env.local file in the frontend directory with:
+    NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+    
+    Get these from your Supabase project settings.
+  `);
 }
 
+console.log('🚀 Initializing Supabase with real credentials...');
 export const supabaseDatabase = new SupabaseDatabaseService(supabaseUrl, supabaseAnonKey);
 
 // Export the Supabase client for direct use if needed

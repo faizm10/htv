@@ -484,6 +484,38 @@ class MockDatabaseService implements DatabaseService {
           sharedInterests: ['art', 'yoga', 'wellness', 'music'],
           mutualConnections: ['550e8400-e29b-41d4-a716-446655440003']
         }
+      },
+      // Add current_user for testing
+      {
+        id: 'current_user',
+        profile: {
+          name: 'Current User',
+          alias: 'current_user',
+          avatar: 'CU',
+          bio: 'Chat app user',
+          timezone: 'PST',
+          language: 'en'
+        },
+        preferences: {
+          responseTime: 'within_hour',
+          communicationStyle: 'casual',
+          preferredTopics: ['general'],
+          avoidTopics: [],
+          ghostingTolerance: 70
+        },
+        analytics: {
+          totalMessages: 10,
+          averageResponseTime: 2.0,
+          lastActiveAt: '2024-01-21T16:00:00Z',
+          activeDays: 5,
+          messageFrequency: 'medium'
+        },
+        relationship: {
+          closeness: 'friend',
+          metIn: 'online',
+          relationshipLength: '1_year',
+          interactionPattern: 'regular'
+        }
       }
     ];
 
