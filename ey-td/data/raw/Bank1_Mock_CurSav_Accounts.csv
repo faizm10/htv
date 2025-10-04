@@ -1,6 +1,0 @@
-AccountID,AccountType,AccountStatus,UnclearedBalance,LockedAmount
-ACC-001,Savings,Active,15000.00,0.00
-ACC-002,Checking,Dormant,7500.00,2000.00
-ACC-003,Savings,Active,3000.00,0.00
-ACC-004,Checking,Dormant,12000.00,4000.00
-ACC-005,Savings,Active,800.00,0.00

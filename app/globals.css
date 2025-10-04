@@ -1,0 +1,105 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 11 15 23; /* #0b0f17 */
+  --foreground: 230 237 243; /* #E6EDF3 */
+  --card: 18 24 39; /* #121827 */
+  --card-foreground: 230 237 243;
+  --popover: 18 24 39;
+  --popover-foreground: 230 237 243;
+  --primary: 155 140 255; /* #9b8cff */
+  --primary-foreground: 11 15 23;
+  --secondary: 18 24 39;
+  --secondary-foreground: 230 237 243;
+  --muted: 18 24 39;
+  --muted-foreground: 156 163 175;
+  --accent: 147 255 122; /* #93ff7a */
+  --accent-foreground: 11 15 23;
+  --destructive: 255 84 112; /* #ff5470 */
+  --destructive-foreground: 230 237 243;
+  --border: 31 41 55;
+  --input: 31 41 55;
+  --ring: 155 140 255;
+  --radius: 1rem;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+body {
+  color: hsl(var(--foreground));
+  background: hsl(var(--background));
+  font-feature-settings: "rlig" 1, "calt" 1;
+}
+
+/* Ghost theme utilities */
+.ghost-card {
+  @apply bg-card border border-border/50 rounded-2xl shadow-[0_0_0_1px_rgba(255,255,255,0.06),0_10px_30px_-10px_rgba(155,140,255,0.3)];
+}
+
+.ghost-glow {
+  filter: drop-shadow(0 0 20px rgba(155, 140, 255, 0.35));
+}
+
+.ghost-glow-green {
+  filter: drop-shadow(0 0 20px rgba(147, 255, 122, 0.35));
+}
+
+.ghost-glow-red {
+  filter: drop-shadow(0 0 20px rgba(255, 84, 112, 0.35));
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Focus styles */
+.focus-ghost {
+  @apply focus:outline-none focus:ring-2 focus:ring-ectoplasm/50 focus:ring-offset-2 focus:ring-offset-background;
+}
+
+/* Text selection */
+::selection {
+  background: hsl(var(--primary) / 0.2);
+  color: hsl(var(--foreground));
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}

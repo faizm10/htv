@@ -1,7 +1,0 @@
-{
-	"InstallScripts" : 
-	[
-		"/Applications/vscode/htv/ey-td/game/build/cmake_install.cmake"
-	],
-	"Parallel" : false
-}

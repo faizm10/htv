@@ -1,5 +1,0 @@
-LoanID,AccountType,LastPaymentDate,InterestFromArrearsBalance
-LOAN-001,Personal Loan,2023-08-15,2500.00
-LOAN-002,Mortgage,2023-10-01,5000.00
-LOAN-003,Business Loan,2024-12-01,0.00
-LOAN-004,Auto Loan,2023-07-20,1200.00
