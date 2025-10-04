@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Ghost, Filter, Search, Send } from 'lucide-react';
+import { Ghost, Filter, Search, Send, BarChart3 } from 'lucide-react';
 import { GhostBadge } from '@/components/ui/ghost-badge';
 import { MessageBubble } from '@/components/ui/message-bubble';
 import { DraftCoachBanner } from '@/components/ui/draft-coach-banner';
@@ -605,6 +605,7 @@ function ChatContent() {
               currentDraft={draft}
               lastMessages={selectedConversation?.messages.slice(-3).map((m: any) => m.text) || []}
               metrics={selectedConversation?.metrics || { daysSinceReply: 0, responseRate: 0, averageDryness: 0, ghostScoreTrend: 0 }}
+              conversationId={selectedConversation?.id}
               className="h-full"
             />
           </div>
