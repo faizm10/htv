@@ -83,3 +83,98 @@ export async function generateExit() {
     return ["Hey, I've been thinking and I think we should take a step back from this. I appreciate the time we've spent together, but I don't feel like we're a good match. Wishing you all the best! 🙏"];
   }
 }
+
+export async function generateNextWord(ctx: { 
+  currentText: string, 
+  conversationContext: string[], 
+  maxWords?: number
+}): Promise<Array<{ word: string; confidence: number }>> {
+  const maxWords = ctx.maxWords || 3;
+  const prompt = `Predict the next ${maxWords} most likely words to continue this sentence naturally.
+
+Context from recent messages: ${ctx.conversationContext.join(' | ')}
+Current sentence: "${ctx.currentText}"
+
+Return as JSON array with format:
+[
+  {"word": "next_word", "confidence": 0.9},
+  {"word": "alternative_word", "confidence": 0.8}
+]
+
+Rules:
+- Provide single words or short phrases (1-3 words max)
+- Confidence 0.5-1.0 (higher = more likely)
+- Keep it conversational and natural
+- Match the tone and context
+- Consider grammar and sentence flow
+- If sentence seems complete, suggest continuation words like "and", "but", "so"`;
+
+  try {
+    const res = await callGemini(prompt);
+    const text = (await res).text?.() ?? "";
+    
+    // Try to parse JSON response
+    try {
+      const parsed = JSON.parse(text);
+      if (Array.isArray(parsed)) {
+        return parsed.slice(0, maxWords);
+      }
+    } catch (parseError) {
+      console.warn('Failed to parse JSON, falling back to text parsing');
+    }
+    
+    // Fallback: parse text response
+    const lines = text.split('\n').filter(line => line.trim());
+    return lines.slice(0, maxWords).map((line, index) => ({
+      word: line.replace(/^\d+\.\s*/, '').replace(/^[-*]\s*/, '').trim(),
+      confidence: Math.max(0.5, 0.9 - index * 0.1)
+    }));
+    
+  } catch (error) {
+    console.error('Gemini next word error:', error);
+    
+    // Smart fallback based on current text
+    const text = ctx.currentText.toLowerCase().trim();
+    const lastWord = text.split(/\s+/).pop() || '';
+    
+    // Common word patterns
+    if (text.endsWith('i am') || text.endsWith('i\'m')) {
+      return [
+        { word: 'going', confidence: 0.9 },
+        { word: 'feeling', confidence: 0.8 },
+        { word: 'trying', confidence: 0.7 }
+      ];
+    }
+    
+    if (text.endsWith('going')) {
+      return [
+        { word: 'to', confidence: 0.9 },
+        { word: 'for', confidence: 0.8 },
+        { word: 'out', confidence: 0.7 }
+      ];
+    }
+    
+    if (text.endsWith('want to')) {
+      return [
+        { word: 'go', confidence: 0.9 },
+        { word: 'see', confidence: 0.8 },
+        { word: 'do', confidence: 0.7 }
+      ];
+    }
+    
+    if (text.endsWith('how are')) {
+      return [
+        { word: 'you', confidence: 0.9 },
+        { word: 'things', confidence: 0.8 },
+        { word: 'we', confidence: 0.7 }
+      ];
+    }
+    
+    // Default suggestions
+    return [
+      { word: 'you', confidence: 0.8 },
+      { word: 'the', confidence: 0.7 },
+      { word: 'and', confidence: 0.6 }
+    ];
+  }
+}

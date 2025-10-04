@@ -7,6 +7,7 @@ import { GhostBadge } from '@/components/ui/ghost-badge';
 import { MessageBubble } from '@/components/ui/message-bubble';
 import { DraftCoachBanner } from '@/components/ui/draft-coach-banner';
 import { AIBox } from '@/components/ui/ai-box';
+import MessageComposer from '@/components/ui/message-composer';
 import { TopBar } from '@/components/ui/top-bar';
 import { useDemoData } from '@/lib/demo-data';
 import { useDryness } from '@/lib/use-dryness';
@@ -243,39 +244,14 @@ export default function ChatPage() {
                   )}
                 </AnimatePresence>
 
-                <div className="flex gap-3">
-                  <div className="flex-1 relative">
-                    <textarea
-                      value={draft}
-                      onChange={(e) => setDraft(e.target.value)}
-                      placeholder="Type your message..."
-                      className="w-full px-4 py-3 bg-muted border border-border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary/20"
-                      rows={1}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          handleSendMessage();
-                        }
-                        if (e.key === 'Escape') {
-                          setDraft('');
-                          setShowSuggestions(false);
-                        }
-                      }}
-                    />
-                    {dryness.score >= 0.6 && draft.trim() && (
-                      <div className="absolute -top-8 left-0 text-xs text-amber-400 font-medium">
-                        {dryness.label} ({Math.round(dryness.score * 100)}%)
-                      </div>
-                    )}
-                  </div>
-                  <button
-                    onClick={handleSendMessage}
-                    disabled={!draft.trim()}
-                    className="px-4 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Send className="w-4 h-4" />
-                  </button>
-                </div>
+                <MessageComposer
+                  lastTurns={selectedConversation.messages.slice(-3).map(m => m.text)}
+                  personaTone="casual"
+                  onSend={async (text) => {
+                    setDraft(text);
+                    await handleSendMessage();
+                  }}
+                />
               </div>
             </>
           ) : (
@@ -317,7 +293,7 @@ export default function ChatPage() {
             <AIBox
               currentDraft={draft}
               lastMessages={selectedConversation?.messages.slice(-3).map(m => m.text) || []}
-              metrics={selectedConversation?.metrics || { daysSinceReply: 0, responseRate: 0, avgResponseTime: 0 }}
+              metrics={selectedConversation?.metrics || { daysSinceReply: 0, responseRate: 0, averageDryness: 0, ghostScoreTrend: 0 }}
               className="h-full"
             />
           </div>
