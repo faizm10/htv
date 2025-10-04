@@ -1,20 +1,6 @@
 import type { Metadata } from "next";
-import { Inter, Sora } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const sora = Sora({
-  variable: "--font-sora",
-  subsets: ["latin"],
-  weight: ["700"],
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: "GhostWing 👻",
@@ -28,9 +14,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body
-        className={`${inter.variable} ${sora.variable} antialiased min-h-screen`}
-      >
+      <body className="antialiased min-h-screen font-sans">
         {children}
         <Toaster 
           position="top-right"

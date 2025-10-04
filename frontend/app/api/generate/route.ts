@@ -15,10 +15,35 @@ export async function POST(req: Request) {
     console.log('🔑 API key found, proceeding with Gemini call...');
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
-    const result = await model.generateContent(prompt);
-    return Response.json({ text: result.response.text() });
+    
+    // Try different models in order of preference (fastest first)
+    const models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro", "gemini-2.5-flash"];
+    let result;
+    let lastError;
+    
+    for (const modelName of models) {
+      try {
+        console.log(`🔄 Trying model: ${modelName}`);
+        const model = genAI.getGenerativeModel({ model: modelName });
+        result = await model.generateContent(prompt);
+        console.log(`✅ Success with model: ${modelName}`);
+        break;
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.log(`❌ Model ${modelName} failed:`, errorMessage);
+        lastError = error;
+        continue;
+      }
+    }
+    
+    if (!result) {
+      const lastErrorMessage = lastError instanceof Error ? lastError.message : String(lastError);
+      throw new Error(`All models failed. Last error: ${lastErrorMessage}`);
+    }
+    
+    const responseText = result.response.text();
+    console.log('✅ Gemini response received:', responseText);
+    return Response.json({ text: responseText });
   } catch (error) {
     console.error('❌ Gemini API Error:', error);
     

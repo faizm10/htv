@@ -60,25 +60,43 @@ export async function testGeminiConnection() {
 export async function generateRewrite(ctx: { draft: string, lastTurns: string[], vibe?: string }) {
   const vibeInstruction = ctx.vibe ? `in a ${ctx.vibe.toLowerCase()} tone` : 'in different styles (casual, playful, concise)';
   
-  const prompt = `Rewrite this message ${vibeInstruction}, giving at least three options. Keep each option under 120 characters.
+  const prompt = `You are a conversation coach helping rewrite messages to be more engaging. 
 
-Message to rewrite: "${ctx.draft}"
+Rewrite this message ${vibeInstruction}, providing exactly 3 different options. Each option should be under 120 characters.
 
-Context from recent messages:
+Original message: "${ctx.draft}"
+
+Recent conversation context:
 ${ctx.lastTurns.length > 0 ? ctx.lastTurns.join("\n") : "No previous context"}
 
+IMPORTANT: Return ONLY the 3 rewrite options, one per line, with no numbering, bullets, or extra text. Each line should be a complete message ready to send.
+
+Example format:
+Hey! Want to grab dinner Thursday?
+What's up! Free for dinner Thu evening?
+Dinner Thursday? I'm thinking ramen or tacos 🍜
+
 Rules:
-- Provide exactly 3 different rewrite options
-- Each should be under 120 characters
+- Exactly 3 options, one per line
+- Under 120 characters each
 - Match the requested tone/style
-- Keep it natural and conversational
-- Add at most 1 question if it feels natural
-- Avoid being too formal unless the vibe requires it`;
+- Natural and conversational
+- No extra formatting or explanations`;
   
   try {
-    const res = await callGemini(prompt);
-    const text = 'response' in res ? res.response?.text() ?? "" : res.text();
-    return text.split(/\n+/).slice(0, 3).filter(line => line.trim());
+    const text = await callGeminiAPI(prompt);
+    // Clean up the response and extract just the rewrite options
+    const lines = text.split(/\n+/)
+      .map((line: string) => line.trim())
+      .filter((line: string) => line.length > 0 && line.length < 120)
+      .slice(0, 3);
+    
+    // If we don't have 3 good options, pad with fallbacks
+    while (lines.length < 3) {
+      lines.push(`Hey! ${ctx.draft.slice(0, 100)}`);
+    }
+    
+    return lines;
   } catch (error) {
     console.error('Gemini rewrite error:', error);
     return [
@@ -90,12 +108,36 @@ Rules:
 }
 
 export async function generateNudge(ctx: { context: string }) {
-  const prompt = `Produce 3 low-risk nudges with 2 concrete options and an easy opt-out. <=120 chars each. Context: ${ctx.context}`;
+  const prompt = `You are a conversation coach helping create gentle nudges to re-engage someone.
+
+Create 3 low-risk nudges based on this context: ${ctx.context}
+
+Each nudge should:
+- Be under 120 characters
+- Offer 2 concrete options
+- Include an easy opt-out
+- Be friendly and non-pressuring
+
+IMPORTANT: Return ONLY the 3 nudge options, one per line, with no numbering, bullets, or extra text.
+
+Example format:
+Hey! Coffee or drinks this week? No worries if you're swamped ☕
+Want to catch up soon? I'm free Wed/Thu evening if you are 😊
+How's it going? Free for a quick coffee this week? No pressure!`;
   
   try {
-    const res = await callGemini(prompt);
-    const text = 'response' in res ? res.response?.text() ?? "" : res.text();
-    return text.split(/\n+/).slice(0, 3).filter(line => line.trim());
+    const text = await callGeminiAPI(prompt);
+    const lines = text.split(/\n+/)
+      .map((line: string) => line.trim())
+      .filter((line: string) => line.length > 0 && line.length < 120)
+      .slice(0, 3);
+    
+    // If we don't have 3 good options, pad with fallbacks
+    while (lines.length < 3) {
+      lines.push("Hey! Coffee or drinks this week? No worries if you're swamped ☕");
+    }
+    
+    return lines;
   } catch (error) {
     console.error('Gemini nudge error:', error);
     return [
@@ -110,8 +152,7 @@ export async function generateExit() {
   const prompt = `Polite exit message, <=140 chars, neutral tone:`;
   
   try {
-    const res = await callGemini(prompt);
-    const text = 'response' in res ? res.response?.text() ?? "" : res.text();
+    const text = await callGeminiAPI(prompt);
     return [text.trim()];
   } catch (error) {
     console.error('Gemini exit error:', error);
