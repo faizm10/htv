@@ -25,17 +25,17 @@ export async function addMockConversations() {
       ghostingTolerance: 75
     },
     analytics: {
-      totalMessages: 45,
       averageResponseTime: 2.5,
-      lastActiveAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // 30 minutes ago
-      activeDays: 7,
-      messageFrequency: 'high'
+      responseRate: 0.85,
+      messageFrequency: 'high',
+      engagementScore: 8.5,
+      lastActiveAt: new Date(Date.now() - 30 * 60 * 1000).toISOString() // 30 minutes ago
     },
     relationship: {
       closeness: 'close_friend',
       metIn: 'school',
-      relationshipLength: '2_years',
-      interactionPattern: 'regular'
+      sharedInterests: ['hiking', 'photography', 'travel'],
+      mutualConnections: []
     }
   });
 
@@ -57,17 +57,17 @@ export async function addMockConversations() {
       ghostingTolerance: 60
     },
     analytics: {
-      totalMessages: 32,
       averageResponseTime: 4.2,
-      lastActiveAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
-      activeDays: 5,
-      messageFrequency: 'medium'
+      responseRate: 0.72,
+      messageFrequency: 'medium',
+      engagementScore: 6.8,
+      lastActiveAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() // 2 hours ago
     },
     relationship: {
-      closeness: 'good_friend',
+      closeness: 'friend',
       metIn: 'work',
-      relationshipLength: '1_year',
-      interactionPattern: 'occasional'
+      sharedInterests: ['technology', 'coffee', 'coding'],
+      mutualConnections: []
     }
   });
 
@@ -89,17 +89,17 @@ export async function addMockConversations() {
       ghostingTolerance: 80
     },
     analytics: {
-      totalMessages: 28,
       averageResponseTime: 6.8,
-      lastActiveAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
-      activeDays: 3,
-      messageFrequency: 'low'
+      responseRate: 0.45,
+      messageFrequency: 'low',
+      engagementScore: 4.2,
+      lastActiveAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString() // 1 day ago
     },
     relationship: {
       closeness: 'acquaintance',
       metIn: 'social',
-      relationshipLength: '6_months',
-      interactionPattern: 'sporadic'
+      sharedInterests: ['music', 'dogs', 'art'],
+      mutualConnections: []
     }
   });
 
@@ -121,17 +121,17 @@ export async function addMockConversations() {
       ghostingTolerance: 90
     },
     analytics: {
-      totalMessages: 67,
       averageResponseTime: 1.2,
-      lastActiveAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(), // 10 minutes ago
-      activeDays: 12,
-      messageFrequency: 'very_high'
+      responseRate: 0.95,
+      messageFrequency: 'high',
+      engagementScore: 9.2,
+      lastActiveAt: new Date(Date.now() - 10 * 60 * 1000).toISOString() // 10 minutes ago
     },
     relationship: {
-      closeness: 'best_friend',
+      closeness: 'close_friend',
       metIn: 'online',
-      relationshipLength: '3_years',
-      interactionPattern: 'very_regular'
+      sharedInterests: ['art', 'yoga', 'wellness'],
+      mutualConnections: []
     }
   });
 
@@ -150,21 +150,22 @@ export async function addMockConversations() {
       currentTopic: 'weekend plans',
       mood: 'positive',
       urgency: 'low',
-      requiresResponse: true
+      requiresResponse: true,
+      suggestedActions: ['Ask about specific plans', 'Suggest an activity', 'Share your own weekend plans']
     },
     metrics: {
       ghostScore: 25,
-      responseRate: 85,
-      averageDryness: 2.3,
+      responseRate: 0.85,
+      averageDryness: 0.23,
       daysSinceLastReply: 0,
       conversationHealth: 'healthy',
-      messageCount: 45,
-      lastActivityAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString()
+      messageCount: 45
     },
     settings: {
       notifications: true,
-      tags: ['friends', 'weekend-plans'],
-      priority: 'normal'
+      autoReply: false,
+      priority: 'normal',
+      tags: ['friends', 'weekend-plans']
     }
   });
 
@@ -248,23 +249,24 @@ export async function addMockConversations() {
     },
     context: {
       currentTopic: 'music collaboration',
-      mood: 'excited',
+      mood: 'positive',
       urgency: 'medium',
-      requiresResponse: true
+      requiresResponse: true,
+      suggestedActions: ['Ask about the project', 'Share your music interests', 'Offer to help']
     },
     metrics: {
       ghostScore: 15,
-      responseRate: 95,
-      averageDryness: 1.8,
+      responseRate: 0.95,
+      averageDryness: 0.18,
       daysSinceLastReply: 0,
-      conversationHealth: 'excellent',
-      messageCount: 67,
-      lastActivityAt: new Date(Date.now() - 30 * 60 * 1000).toISOString()
+      conversationHealth: 'healthy',
+      messageCount: 67
     },
     settings: {
       notifications: true,
-      tags: ['music', 'collaboration', 'creative'],
-      priority: 'high'
+      autoReply: false,
+      priority: 'high',
+      tags: ['music', 'collaboration', 'creative']
     }
   });
 

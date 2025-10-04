@@ -15,13 +15,16 @@ import { generateRewrite } from '@/lib/gemini';
 import { triggerConfetti } from '@/lib/confetti';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
+import { Suspense } from 'react';
 
 type FilterType = 'all' | 'risky' | 'active';
 
-export default function ChatPage() {
+function ChatContent() {
   const db = useDatabaseData();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [filter, setFilter] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
@@ -32,11 +35,31 @@ export default function ChatPage() {
   const [showAutofill, setShowAutofill] = useState(false);
   const [conversations, setConversations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
   const selectedConversation = selectedConversationId 
     ? conversations.find(c => c.id === selectedConversationId) 
     : null;
   const dryness = useDryness(draft);
+
+  // Check authentication status
+  useEffect(() => {
+    const checkAuth = async () => {
+      const supabase = createClient();
+      const { data: { user }, error } = await supabase.auth.getUser();
+      
+      if (error || !user) {
+        router.push('/auth/login');
+        return;
+      }
+      
+      setUser(user);
+      setAuthLoading(false);
+    };
+
+    checkAuth();
+  }, [router]);
 
   // Helper function to generate initials from name
   const getInitials = (name: string) => {
@@ -321,23 +344,30 @@ export default function ChatPage() {
     setShowSuggestions(false);
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
-        <TopBar onSearch={setSearchQuery} />
+        <TopBar onSearch={setSearchQuery} user={user} />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading conversations...</p>
+            <p className="text-muted-foreground">
+              {authLoading ? 'Checking authentication...' : 'Loading conversations...'}
+            </p>
           </div>
         </div>
       </div>
     );
   }
 
+  // If no user after auth loading, don't render anything (redirect will happen)
+  if (!user) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <TopBar onSearch={setSearchQuery} />
+      <TopBar onSearch={setSearchQuery} user={user} />
       
       <div className="flex-1 flex">
         {/* Left Panel - Conversations */}
@@ -612,4 +642,28 @@ function formatLastSeen(lastActiveAt: string): string {
   if (diffHours < 24) return `${diffHours} hours ago`;
   if (diffDays < 7) return `${diffDays} days ago`;
   return lastActive.toLocaleDateString();
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background flex flex-col">
+        <div className="flex items-center justify-between p-4 border-b border-border">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 bg-primary/20 rounded animate-pulse"></div>
+            <div className="w-24 h-6 bg-primary/20 rounded animate-pulse"></div>
+          </div>
+          <div className="w-32 h-8 bg-primary/20 rounded animate-pulse"></div>
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading chat...</p>
+          </div>
+        </div>
+      </div>
+    }>
+      <ChatContent />
+    </Suspense>
+  );
 }

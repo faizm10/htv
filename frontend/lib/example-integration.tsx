@@ -3,8 +3,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { database } from './database-service';
-import { getAutofillSuggestions } from './autofill-service';
-import { Conversation, User, Message, AutofillSuggestion } from './database-types';
+import { getAutofillSuggestions, AutofillSuggestion } from './autofill-service';
+import { Conversation, User, Message } from './database-types';
 
 // Example component that demonstrates the new database integration
 export function EnhancedChatComponent({ conversationId }: { conversationId: string }) {
@@ -78,7 +78,8 @@ export function EnhancedChatComponent({ conversationId }: { conversationId: stri
           delivered: false,
           read: false,
           edited: false
-        }
+        },
+        timestamp: new Date().toISOString()
       });
 
       // Update local state

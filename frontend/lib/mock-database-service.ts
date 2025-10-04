@@ -504,17 +504,17 @@ class MockDatabaseService implements DatabaseService {
           ghostingTolerance: 70
         },
         analytics: {
-          totalMessages: 10,
           averageResponseTime: 2.0,
-          lastActiveAt: '2024-01-21T16:00:00Z',
-          activeDays: 5,
-          messageFrequency: 'medium'
+          responseRate: 0.75,
+          messageFrequency: 'medium',
+          engagementScore: 7.5,
+          lastActiveAt: '2024-01-21T16:00:00Z'
         },
         relationship: {
           closeness: 'friend',
           metIn: 'online',
-          relationshipLength: '1_year',
-          interactionPattern: 'regular'
+          sharedInterests: ['general'],
+          mutualConnections: []
         }
       }
     ];
