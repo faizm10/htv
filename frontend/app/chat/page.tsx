@@ -8,7 +8,8 @@ import { MessageBubble } from '@/components/ui/message-bubble';
 import { DraftCoachBanner } from '@/components/ui/draft-coach-banner';
 import { AIBox } from '@/components/ui/ai-box';
 import { TopBar } from '@/components/ui/top-bar';
-import { useDemoData } from '@/lib/demo-data';
+import { useDatabaseData, getAutofillSuggestions } from '@/lib/use-database-data';
+import { supabaseDatabase } from '@/lib/supabase-service';
 import { useDryness } from '@/lib/use-dryness';
 import { generateRewrite } from '@/lib/gemini';
 import { triggerConfetti } from '@/lib/confetti';
@@ -19,7 +20,7 @@ import { useSearchParams } from 'next/navigation';
 type FilterType = 'all' | 'risky' | 'active';
 
 export default function ChatPage() {
-  const { conversations } = useDemoData();
+  const db = useDatabaseData();
   const searchParams = useSearchParams();
   const [filter, setFilter] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -27,11 +28,90 @@ export default function ChatPage() {
   const [draft, setDraft] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [autofillSuggestions, setAutofillSuggestions] = useState<string[]>([]);
+  const [showAutofill, setShowAutofill] = useState(false);
+  const [conversations, setConversations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const selectedConversation = selectedConversationId 
     ? conversations.find(c => c.id === selectedConversationId) 
     : null;
   const dryness = useDryness(draft);
+
+  // Helper function to generate initials from name
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase())
+      .slice(0, 2)
+      .join('');
+  };
+
+  // Load conversations from Supabase
+  useEffect(() => {
+    const loadConversations = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch all conversations from Supabase (no user filter)
+        const supabaseConversations = await supabaseDatabase.getConversations();
+        const legacyConversations: any[] = [];
+
+        for (const conversation of supabaseConversations) {
+          // Get the first participant as the "other user" for display purposes
+          const otherUserId = conversation.participants[0];
+          if (otherUserId) {
+            const [otherUser, messages] = await Promise.all([
+              supabaseDatabase.getUser(otherUserId),
+              supabaseDatabase.getMessages({ conversationId: conversation.id })
+            ]);
+            
+            if (otherUser) {
+              // Convert to legacy format
+              const lastMessage = messages[messages.length - 1];
+              const isActive = otherUser.analytics.lastActiveAt && 
+                new Date(otherUser.analytics.lastActiveAt) > new Date(Date.now() - 24 * 60 * 60 * 1000);
+              
+              legacyConversations.push({
+                id: conversation.id,
+                participants: conversation.participants, // Preserve participants field
+                name: otherUser.profile.name,
+                alias: otherUser.profile.alias,
+                avatar: otherUser.profile.avatar,
+                ghostScore: conversation.metrics.ghostScore,
+                lastMessage: lastMessage?.content.text || '',
+                lastSeen: formatLastSeen(otherUser.analytics.lastActiveAt),
+                isActive,
+                isRisky: conversation.metrics.conversationHealth === 'critical' || conversation.metrics.conversationHealth === 'at_risk',
+                messages: messages.map(msg => ({
+                  id: msg.id,
+                  text: msg.content.text,
+                  sender: msg.senderId === otherUserId ? 'them' : 'me', // Show messages from other user as 'them'
+                  timestamp: msg.timestamp,
+                  quality: msg.analysis.quality === 'engaging' ? 'playful' : msg.analysis.quality
+                })),
+                metrics: {
+                  daysSinceReply: conversation.metrics.daysSinceLastReply,
+                  responseRate: conversation.metrics.responseRate,
+                  averageDryness: conversation.metrics.averageDryness,
+                  ghostScoreTrend: 0
+                }
+              });
+            }
+          }
+        }
+
+        setConversations(legacyConversations);
+      } catch (error) {
+        console.error('Error loading conversations:', error);
+        toast.error('Failed to load conversations');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadConversations();
+  }, []);
 
   // Handle query parameter for auto-selecting conversation
   useEffect(() => {
@@ -40,6 +120,25 @@ export default function ChatPage() {
       setSelectedConversationId(conversationParam);
     }
   }, [searchParams, conversations]);
+
+  // Load autofill suggestions when conversation is selected
+  useEffect(() => {
+    if (selectedConversationId) {
+      const loadAutofillSuggestions = async () => {
+        try {
+          const suggs = await supabaseDatabase.generateSuggestions(selectedConversationId, '');
+          setAutofillSuggestions(suggs);
+          setShowAutofill(true);
+        } catch (error) {
+          console.error('Error loading autofill suggestions:', error);
+        }
+      };
+      loadAutofillSuggestions();
+    } else {
+      setAutofillSuggestions([]);
+      setShowAutofill(false);
+    }
+  }, [selectedConversationId]);
 
   const filteredConversations = conversations.filter(conversation => {
     const matchesSearch = conversation.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -65,18 +164,117 @@ export default function ChatPage() {
   }, [dryness.score, draft]);
 
   const handleSendMessage = async () => {
-    if (!draft.trim() || !selectedConversation) return;
+    if (!draft.trim() || !selectedConversation) {
+      console.warn('Cannot send message: no draft or no conversation selected');
+      return;
+    }
 
-    // Simulate sending message and getting response
-    toast.success('Ghost contained. Nice.');
-    
-    // Clear draft
-    setDraft('');
-    setShowSuggestions(false);
-    
-    // Simulate confetti if ghost score would drop significantly
-    if (selectedConversation.ghostScore > 50) {
-      triggerConfetti();
+    try {
+      // Use the first participant as the sender for now (this should be replaced with actual user auth)
+      if (!selectedConversation.participants || selectedConversation.participants.length === 0) {
+        console.error('No participants found in conversation');
+        toast.error('Cannot send message: no participants in conversation');
+        return;
+      }
+      
+      const senderId = selectedConversation.participants[0]; // Use first participant as sender
+      
+      // Analyze message dryness
+      const drynessScore = analyzeDryness(draft);
+      const quality = determineQuality(draft, drynessScore);
+      
+      // Add message to Supabase database
+      await supabaseDatabase.addMessage({
+        conversationId: selectedConversation.id,
+        senderId: senderId,
+        content: {
+          text: draft,
+          type: 'text'
+        },
+        timestamp: new Date().toISOString(),
+        analysis: {
+          quality,
+          sentiment: 'positive', // Simplified for now
+          intent: 'statement',
+          requiresResponse: false,
+          urgency: 'low',
+          drynessScore
+        },
+        status: {
+          delivered: false,
+          read: false,
+          edited: false
+        }
+      });
+
+      // Show success message
+      toast.success('Message sent successfully!');
+      
+      // Clear draft
+      setDraft('');
+      setShowSuggestions(false);
+      
+      // Refresh the entire conversation list to get updated data
+      const supabaseConversations = await supabaseDatabase.getConversations();
+      const legacyConversations: any[] = [];
+
+      for (const conversation of supabaseConversations) {
+        // Get the first participant as the "other user" for display purposes
+        const otherUserId = conversation.participants[0];
+        if (otherUserId) {
+          const [otherUser, messages] = await Promise.all([
+            supabaseDatabase.getUser(otherUserId),
+            supabaseDatabase.getMessages({ conversationId: conversation.id })
+          ]);
+          
+          if (otherUser) {
+            // Convert to legacy format
+            const lastMessage = messages[messages.length - 1];
+            const isActive = otherUser.analytics.lastActiveAt && 
+              new Date(otherUser.analytics.lastActiveAt) > new Date(Date.now() - 24 * 60 * 60 * 1000);
+            
+            legacyConversations.push({
+              id: conversation.id,
+              participants: conversation.participants, // Preserve participants field
+              name: otherUser.profile.name,
+              alias: otherUser.profile.alias,
+              avatar: otherUser.profile.avatar,
+              ghostScore: conversation.metrics.ghostScore,
+              lastMessage: lastMessage?.content.text || '',
+              lastSeen: formatLastSeen(otherUser.analytics.lastActiveAt),
+              isActive,
+              isRisky: conversation.metrics.conversationHealth === 'critical' || conversation.metrics.conversationHealth === 'at_risk',
+              messages: messages.map(msg => ({
+                id: msg.id,
+                text: msg.content.text,
+                sender: msg.senderId === otherUserId ? 'them' : 'me',
+                timestamp: msg.timestamp,
+                quality: msg.analysis.quality === 'engaging' ? 'playful' : msg.analysis.quality
+              })),
+              metrics: {
+                daysSinceReply: conversation.metrics.daysSinceLastReply,
+                responseRate: conversation.metrics.responseRate,
+                averageDryness: conversation.metrics.averageDryness,
+                ghostScoreTrend: 0
+              }
+            });
+          }
+        }
+      }
+
+      setConversations(legacyConversations);
+      
+      // Refresh autofill suggestions
+      const newSuggestions = await supabaseDatabase.generateSuggestions(selectedConversation.id, '');
+      setAutofillSuggestions(newSuggestions);
+      
+      // Simulate confetti if ghost score would drop significantly
+      if (selectedConversation.ghostScore > 50) {
+        triggerConfetti();
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast.error('Failed to send message');
     }
   };
 
@@ -85,11 +283,17 @@ export default function ChatPage() {
     setShowSuggestions(false);
   };
 
+  const handleSelectAutofillSuggestion = (suggestion: string) => {
+    setDraft(suggestion);
+    // Remove the selected suggestion from the list
+    setAutofillSuggestions(prev => prev.filter(s => s !== suggestion));
+  };
+
   const handleGenerateSuggestions = async () => {
     if (!selectedConversation) return;
     
     try {
-      const lastMessages = selectedConversation.messages.slice(-3).map(m => m.text) || [];
+      const lastMessages = selectedConversation.messages.slice(-3).map((m: any) => m.text) || [];
       const newSuggestions = await generateRewrite({ 
         draft, 
         lastTurns: lastMessages 
@@ -116,6 +320,20 @@ export default function ChatPage() {
     setDraft('');
     setShowSuggestions(false);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <TopBar onSearch={setSearchQuery} />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading conversations...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -167,7 +385,7 @@ export default function ChatPage() {
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-sm font-medium">
-                        {conversation.avatar}
+                        {getInitials(conversation.name)}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
@@ -180,9 +398,14 @@ export default function ChatPage() {
                           {conversation.lastMessage}
                         </p>
                         <div className="flex items-center justify-between mt-1">
-                          <span className="text-xs text-muted-foreground">
-                            {conversation.lastSeen}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">
+                              {conversation.lastSeen}
+                            </span>
+                            {conversation.metrics.responseRate < 0.5 && (
+                              <span className="text-xs text-orange-500">⚠️ Low response rate</span>
+                            )}
+                          </div>
                           <GhostBadge score={conversation.ghostScore} size="sm" />
                         </div>
                       </div>
@@ -203,7 +426,7 @@ export default function ChatPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-sm font-medium">
-                      {selectedConversation.avatar}
+                      {getInitials(selectedConversation.name)}
                     </div>
                     <div>
                       <h2 className="font-semibold">{selectedConversation.name}</h2>
@@ -220,7 +443,7 @@ export default function ChatPage() {
               {/* Messages */}
               <div className="flex-1 overflow-y-auto p-4 space-y-1">
                 <AnimatePresence>
-                  {selectedConversation.messages.map((message) => (
+                  {selectedConversation.messages.map((message: any) => (
                     <MessageBubble
                       key={message.id}
                       text={message.text}
@@ -243,6 +466,35 @@ export default function ChatPage() {
                   )}
                 </AnimatePresence>
 
+                {/* Autofill Suggestions */}
+                <AnimatePresence>
+                  {showAutofill && autofillSuggestions.length > 0 && !showSuggestions && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                        <span className="text-sm font-medium text-blue-900">Smart Suggestions</span>
+                        <span className="text-xs text-blue-600">Based on {selectedConversation?.name}'s preferences</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {autofillSuggestions.slice(0, 3).map((suggestion, index) => (
+                          <button
+                            key={index}
+                            onClick={() => handleSelectAutofillSuggestion(suggestion)}
+                            className="px-3 py-1 bg-white border border-blue-200 rounded-full text-sm text-blue-800 hover:bg-blue-100 transition-colors"
+                          >
+                            {suggestion}
+                          </button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 <div className="flex gap-3">
                   <div className="flex-1 relative">
                     <textarea
@@ -254,7 +506,9 @@ export default function ChatPage() {
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault();
-                          handleSendMessage();
+                          if (selectedConversation) {
+                            handleSendMessage();
+                          }
                         }
                         if (e.key === 'Escape') {
                           setDraft('');
@@ -270,10 +524,13 @@ export default function ChatPage() {
                   </div>
                   <button
                     onClick={handleSendMessage}
-                    disabled={!draft.trim()}
-                    className="px-4 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={!draft.trim() || !selectedConversation}
+                    className="px-4 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed relative"
                   >
                     <Send className="w-4 h-4" />
+                    {autofillSuggestions.length > 0 && (
+                      <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full"></div>
+                    )}
                   </button>
                 </div>
               </div>
@@ -316,8 +573,8 @@ export default function ChatPage() {
           <div className="h-full overflow-y-auto">
             <AIBox
               currentDraft={draft}
-              lastMessages={selectedConversation?.messages.slice(-3).map(m => m.text) || []}
-              metrics={selectedConversation?.metrics || { daysSinceReply: 0, responseRate: 0, avgResponseTime: 0 }}
+              lastMessages={selectedConversation?.messages.slice(-3).map((m: any) => m.text) || []}
+              metrics={selectedConversation?.metrics || { daysSinceReply: 0, responseRate: 0, averageDryness: 0, ghostScoreTrend: 0 }}
               className="h-full"
             />
           </div>
@@ -325,4 +582,34 @@ export default function ChatPage() {
       </div>
     </div>
   );
+}
+
+// Helper functions for message analysis
+function analyzeDryness(text: string): number {
+  const dryWords = ['k', 'ok', 'sure', 'yeah', 'fine', 'whatever'];
+  const words = text.toLowerCase().split(' ');
+  const dryCount = words.filter(word => dryWords.includes(word)).length;
+  return Math.min(dryCount / words.length, 1);
+}
+
+function determineQuality(text: string, drynessScore: number): 'dry' | 'neutral' | 'playful' | 'engaging' {
+  if (drynessScore > 0.7) return 'dry';
+  if (drynessScore > 0.4) return 'neutral';
+  if (text.includes('!') || text.includes('?')) return 'playful';
+  return 'engaging';
+}
+
+function formatLastSeen(lastActiveAt: string): string {
+  const now = new Date();
+  const lastActive = new Date(lastActiveAt);
+  const diffMs = now.getTime() - lastActive.getTime();
+  const diffMins = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffMins < 1) return 'just now';
+  if (diffMins < 60) return `${diffMins} minutes ago`;
+  if (diffHours < 24) return `${diffHours} hours ago`;
+  if (diffDays < 7) return `${diffDays} days ago`;
+  return lastActive.toLocaleDateString();
 }
