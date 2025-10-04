@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Wand2, RefreshCw, DoorOpen, BarChart3, Sparkles, ChevronDown, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MetricCard } from './metric-card';
-import { generateRewrite, generateNudge, generateExit } from '@/lib/gemini';
+import { generateRewrite, generateNudge, generateExit, testGeminiConnection } from '@/lib/gemini';
 
 interface AIBoxProps {
   currentDraft: string;
@@ -25,6 +25,10 @@ export function AIBox({ currentDraft, lastMessages, metrics, className }: AIBoxP
   const [activeTab, setActiveTab] = useState<TabType>('nudge');
   const [isGenerating, setIsGenerating] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  
+  // API test state
+  const [apiTestResult, setApiTestResult] = useState<string | null>(null);
+  const [isTestingApi, setIsTestingApi] = useState(false);
   
   // Rewrite tab state
   const [rewriteMessage, setRewriteMessage] = useState('');
@@ -151,6 +155,20 @@ export function AIBox({ currentDraft, lastMessages, metrics, className }: AIBoxP
       console.error('Generation error:', error);
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleTestApi = async () => {
+    setIsTestingApi(true);
+    setApiTestResult(null);
+    
+    try {
+      const result = await testGeminiConnection();
+      setApiTestResult(result.message);
+    } catch (error) {
+      setApiTestResult('Test failed: ' + error);
+    } finally {
+      setIsTestingApi(false);
     }
   };
 
@@ -366,6 +384,38 @@ export function AIBox({ currentDraft, lastMessages, metrics, className }: AIBoxP
                 subtitle="Risk level"
               />
             </div>
+            
+            {/* API Test Section */}
+            <div className="pt-4 border-t border-border">
+              <div className="text-sm font-medium mb-2">API Status</div>
+              <button
+                onClick={handleTestApi}
+                disabled={isTestingApi}
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-muted border border-border rounded-lg text-sm hover:bg-muted/80 transition-colors disabled:opacity-50"
+              >
+                {isTestingApi ? (
+                  <>
+                    <div className="w-3 h-3 border-2 border-muted-foreground/30 border-t-muted-foreground rounded-full animate-spin" />
+                    Testing...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-3 h-3" />
+                    Test Gemini API
+                  </>
+                )}
+              </button>
+              {apiTestResult && (
+                <div className={`mt-2 p-2 rounded text-xs ${
+                  apiTestResult.includes('working') || apiTestResult.includes('Present')
+                    ? 'bg-green-100 text-green-800 border border-green-200'
+                    : 'bg-red-100 text-red-800 border border-red-200'
+                }`}>
+                  {apiTestResult}
+                </div>
+              )}
+            </div>
+            
             <div className="text-xs text-muted-foreground text-center">
               Peak dryness detected at <strong>11:42 PM Fridays</strong>. Consider sleeping.
             </div>

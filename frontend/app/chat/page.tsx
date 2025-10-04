@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Ghost, Filter, Search, Send } from 'lucide-react';
 import { GhostBadge } from '@/components/ui/ghost-badge';
@@ -32,10 +32,6 @@ export default function ChatPage() {
   const [showAutofill, setShowAutofill] = useState(false);
   const [conversations, setConversations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [aiSidekickEnabled, setAiSidekickEnabled] = useState(true);
-
-  // Refs for auto-scrolling
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   const selectedConversation = selectedConversationId 
     ? conversations.find(c => c.id === selectedConversationId) 
@@ -51,31 +47,6 @@ export default function ChatPage() {
       .join('');
   };
 
-  // Auto-scroll to bottom of messages container
-  const scrollToBottom = () => {
-    if (messagesContainerRef.current) {
-      messagesContainerRef.current.scrollTo({
-        top: messagesContainerRef.current.scrollHeight,
-        behavior: 'smooth'
-      });
-    }
-  };
-
-  // Auto-scroll when messages change
-  useEffect(() => {
-    if (selectedConversation?.messages) {
-      // Small delay to ensure DOM has updated and animations complete
-      setTimeout(scrollToBottom, 150);
-    }
-  }, [selectedConversation?.messages]);
-
-  // Auto-scroll when conversation changes
-  useEffect(() => {
-    if (selectedConversation) {
-      setTimeout(scrollToBottom, 150);
-    }
-  }, [selectedConversationId]);
-
   // Load conversations from Supabase
   useEffect(() => {
     const loadConversations = async () => {
@@ -89,7 +60,6 @@ export default function ChatPage() {
         for (const conversation of supabaseConversations) {
           // Get the first participant as the "other user" for display purposes
           const otherUserId = conversation.participants[0];
-          const currentUserId = conversation.participants[1]; // Current user is second participant
           if (otherUserId) {
             const [otherUser, messages] = await Promise.all([
               supabaseDatabase.getUser(otherUserId),
@@ -200,14 +170,14 @@ export default function ChatPage() {
     }
 
     try {
-      // Use the second participant as the sender (current user) for now (this should be replaced with actual user auth)
-      if (!selectedConversation.participants || selectedConversation.participants.length < 2) {
+      // Use the first participant as the sender for now (this should be replaced with actual user auth)
+      if (!selectedConversation.participants || selectedConversation.participants.length === 0) {
         console.error('No participants found in conversation');
         toast.error('Cannot send message: no participants in conversation');
         return;
       }
       
-      const senderId = selectedConversation.participants[1]; // Use second participant as current user sender
+      const senderId = selectedConversation.participants[0]; // Use first participant as sender
       
       // Analyze message dryness
       const drynessScore = analyzeDryness(draft);
@@ -237,12 +207,12 @@ export default function ChatPage() {
         }
       });
 
+      // Show success message
+      toast.success('Message sent successfully!');
+      
       // Clear draft
       setDraft('');
       setShowSuggestions(false);
-      
-      // Auto-scroll to bottom after sending message
-      setTimeout(scrollToBottom, 250);
       
       // Refresh the entire conversation list to get updated data
       const supabaseConversations = await supabaseDatabase.getConversations();
@@ -251,7 +221,6 @@ export default function ChatPage() {
       for (const conversation of supabaseConversations) {
         // Get the first participant as the "other user" for display purposes
         const otherUserId = conversation.participants[0];
-        const currentUserId = conversation.participants[1]; // Current user is second participant
         if (otherUserId) {
           const [otherUser, messages] = await Promise.all([
             supabaseDatabase.getUser(otherUserId),
@@ -298,9 +267,6 @@ export default function ChatPage() {
       // Refresh autofill suggestions
       const newSuggestions = await supabaseDatabase.generateSuggestions(selectedConversation.id, '');
       setAutofillSuggestions(newSuggestions);
-      
-      // Auto-scroll to bottom after conversation refresh
-      setTimeout(scrollToBottom, 350);
       
       // Simulate confetti if ghost score would drop significantly
       if (selectedConversation.ghostScore > 50) {
@@ -370,12 +336,12 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col">
       <TopBar onSearch={setSearchQuery} />
       
-      <div className="flex-1 flex min-h-0">
+      <div className="flex-1 flex">
         {/* Left Panel - Conversations */}
-        <div className="w-80 border-r border-border flex flex-col h-full min-h-0">
+        <div className="w-80 border-r border-border flex flex-col">
           {/* Filters */}
           <div className="p-4 border-b border-border">
             <div className="flex gap-2 mb-4">
@@ -400,7 +366,7 @@ export default function ChatPage() {
           </div>
 
           {/* Conversations List */}
-          <div className="flex-1 overflow-y-auto min-h-0">
+          <div className="flex-1 overflow-y-auto">
             {filteredConversations.length === 0 ? (
               <div className="p-8 text-center text-muted-foreground">
                 <Ghost className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -452,50 +418,30 @@ export default function ChatPage() {
         </div>
 
         {/* Middle Panel - Chat Thread */}
-        <div className="flex-1 flex flex-col h-full min-h-0">
+        <div className="flex-1 flex flex-col">
           {selectedConversation ? (
             <>
               {/* Chat Header */}
-              <div className="p-4 border-b border-border flex-shrink-0">
+              <div className="p-4 border-b border-border">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-sm font-medium">
                       {getInitials(selectedConversation.name)}
                     </div>
-                  <div>
-                    <h2 className="font-semibold">{selectedConversation.name}</h2>
-                    <p className="text-sm text-muted-foreground">{selectedConversation.lastSeen}</p>
+                    <div>
+                      <h2 className="font-semibold">{selectedConversation.name}</h2>
+                      <p className="text-sm text-muted-foreground">{selectedConversation.lastSeen}</p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-3">
                   <GhostBadge 
                     score={selectedConversation.ghostScore} 
                     showPulse={selectedConversation.ghostScore > 80}
                   />
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">AI</span>
-                    <button
-                      onClick={() => setAiSidekickEnabled(!aiSidekickEnabled)}
-                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
-                        aiSidekickEnabled ? 'bg-primary' : 'bg-muted'
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
-                          aiSidekickEnabled ? 'translate-x-5' : 'translate-x-1'
-                        }`}
-                      />
-                    </button>
-                  </div>
-                </div>
                 </div>
               </div>
 
               {/* Messages */}
-              <div 
-                ref={messagesContainerRef}
-                className="flex-1 overflow-y-auto p-4 space-y-1 min-h-0 max-h-full"
-              >
+              <div className="flex-1 overflow-y-auto p-4 space-y-1">
                 <AnimatePresence>
                   {selectedConversation.messages.map((message: any) => (
                     <MessageBubble
@@ -510,9 +456,9 @@ export default function ChatPage() {
               </div>
 
               {/* Message Composer */}
-              <div className="p-4 border-t border-border flex-shrink-0 bg-background">
+              <div className="p-4 border-t border-border">
                 <AnimatePresence>
-                  {aiSidekickEnabled && showSuggestions && suggestions.length > 0 && (
+                  {showSuggestions && suggestions.length > 0 && (
                     <DraftCoachBanner
                       suggestions={suggestions}
                       onSelectSuggestion={handleSelectSuggestion}
@@ -522,7 +468,7 @@ export default function ChatPage() {
 
                 {/* Autofill Suggestions */}
                 <AnimatePresence>
-                  {aiSidekickEnabled && showAutofill && autofillSuggestions.length > 0 && !showSuggestions && (
+                  {showAutofill && autofillSuggestions.length > 0 && !showSuggestions && (
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -570,7 +516,7 @@ export default function ChatPage() {
                         }
                       }}
                     />
-                    {aiSidekickEnabled && dryness.score >= 0.6 && draft.trim() && (
+                    {dryness.score >= 0.6 && draft.trim() && (
                       <div className="absolute -top-8 left-0 text-xs text-amber-400 font-medium">
                         {dryness.label} ({Math.round(dryness.score * 100)}%)
                       </div>
@@ -582,7 +528,7 @@ export default function ChatPage() {
                     className="px-4 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed relative"
                   >
                     <Send className="w-4 h-4" />
-                    {aiSidekickEnabled && autofillSuggestions.length > 0 && (
+                    {autofillSuggestions.length > 0 && (
                       <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full"></div>
                     )}
                   </button>
@@ -623,18 +569,16 @@ export default function ChatPage() {
         </div>
 
         {/* Right Panel - AI Sidekick */}
-        {aiSidekickEnabled && (
-          <div className="hidden xl:block w-96 border-l border-border">
-            <div className="h-full overflow-y-auto">
-              <AIBox
-                currentDraft={draft}
-                lastMessages={selectedConversation?.messages.slice(-3).map((m: any) => m.text) || []}
-                metrics={selectedConversation?.metrics || { daysSinceReply: 0, responseRate: 0, averageDryness: 0, ghostScoreTrend: 0 }}
-                className="h-full"
-              />
-            </div>
+        <div className="hidden xl:block w-96 border-l border-border">
+          <div className="h-full overflow-y-auto">
+            <AIBox
+              currentDraft={draft}
+              lastMessages={selectedConversation?.messages.slice(-3).map((m: any) => m.text) || []}
+              metrics={selectedConversation?.metrics || { daysSinceReply: 0, responseRate: 0, averageDryness: 0, ghostScoreTrend: 0 }}
+              className="h-full"
+            />
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
