@@ -1,0 +1,3 @@
+/Applications/vscode/htv/ey-td/game/build/CMakeFiles/ey-td-game.dir
+/Applications/vscode/htv/ey-td/game/build/CMakeFiles/edit_cache.dir
+/Applications/vscode/htv/ey-td/game/build/CMakeFiles/rebuild_cache.dir

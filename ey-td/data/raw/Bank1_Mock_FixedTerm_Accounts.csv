@@ -1,0 +1,5 @@
+AccountID,AccountType,AccountStatus,MaturityDate
+FIX-001,Term Deposit,Active,2023-12-01
+FIX-002,CD Account,Active,2024-01-15
+FIX-003,Term Deposit,Closed,2022-06-30
+FIX-004,CD Account,Active,2025-03-15
