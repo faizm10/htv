@@ -60,6 +60,7 @@ export default function ChatPage() {
         for (const conversation of supabaseConversations) {
           // Get the first participant as the "other user" for display purposes
           const otherUserId = conversation.participants[0];
+          const currentUserId = conversation.participants[1]; // Current user is second participant
           if (otherUserId) {
             const [otherUser, messages] = await Promise.all([
               supabaseDatabase.getUser(otherUserId),
@@ -170,14 +171,14 @@ export default function ChatPage() {
     }
 
     try {
-      // Use the first participant as the sender for now (this should be replaced with actual user auth)
-      if (!selectedConversation.participants || selectedConversation.participants.length === 0) {
+      // Use the second participant as the sender (current user) for now (this should be replaced with actual user auth)
+      if (!selectedConversation.participants || selectedConversation.participants.length < 2) {
         console.error('No participants found in conversation');
         toast.error('Cannot send message: no participants in conversation');
         return;
       }
       
-      const senderId = selectedConversation.participants[0]; // Use first participant as sender
+      const senderId = selectedConversation.participants[1]; // Use second participant as current user sender
       
       // Analyze message dryness
       const drynessScore = analyzeDryness(draft);
@@ -221,6 +222,7 @@ export default function ChatPage() {
       for (const conversation of supabaseConversations) {
         // Get the first participant as the "other user" for display purposes
         const otherUserId = conversation.participants[0];
+        const currentUserId = conversation.participants[1]; // Current user is second participant
         if (otherUserId) {
           const [otherUser, messages] = await Promise.all([
             supabaseDatabase.getUser(otherUserId),
