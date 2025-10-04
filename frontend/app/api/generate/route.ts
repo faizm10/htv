@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     
     // Try different models in order of preference (fastest first)
-    const models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro", "gemini-2.5-flash"];
+    const models = ["gemini-2.5-flash"];
     let result;
     let lastError;
     
