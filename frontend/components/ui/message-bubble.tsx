@@ -7,35 +7,21 @@ interface MessageBubbleProps {
   text: string;
   sender: 'me' | 'them';
   timestamp: string;
-  quality: 'dry' | 'neutral' | 'playful';
+  showTimestamp?: boolean;
   className?: string;
 }
 
-export function MessageBubble({ text, sender, timestamp, quality, className }: MessageBubbleProps) {
+export function MessageBubble({ text, sender, timestamp, showTimestamp = true, className }: MessageBubbleProps) {
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const getQualityInfo = (quality: string) => {
-    switch (quality) {
-      case 'dry':
-        return { label: 'Dry', className: 'message-quality-dry' };
-      case 'neutral':
-        return { label: 'Okay', className: 'message-quality-neutral' };
-      case 'playful':
-        return { label: 'Playful', className: 'message-quality-playful' };
-      default:
-        return { label: 'Okay', className: 'message-quality-neutral' };
-    }
-  };
-
-  const qualityInfo = getQualityInfo(quality);
 
   return (
     <motion.div
       className={cn(
-        'flex flex-col gap-1 mb-4',
+        'flex flex-col gap-1 mb-1',
         sender === 'me' ? 'items-end' : 'items-start',
         className
       )}
@@ -43,17 +29,13 @@ export function MessageBubble({ text, sender, timestamp, quality, className }: M
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.18 }}
     >
-      <div className="flex items-center gap-2 mb-1">
-        <span className={cn(
-          'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border',
-          qualityInfo.className
-        )}>
-          {qualityInfo.label}
-        </span>
-        <span className="text-xs text-muted-foreground">
-          {formatTime(timestamp)}
-        </span>
-      </div>
+      {showTimestamp && (
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-xs text-muted-foreground">
+            {formatTime(timestamp)}
+          </span>
+        </div>
+      )}
       
       <div className={cn(
         'max-w-[70%] px-4 py-3 rounded-2xl shadow-sm',

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Ghost, Filter, Search, Send } from 'lucide-react';
 import { GhostBadge } from '@/components/ui/ghost-badge';
@@ -37,11 +37,50 @@ function ChatContent() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [aiAssistanceEnabled, setAiAssistanceEnabled] = useState(true);
+  
+  // Refs for scrolling
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   const selectedConversation = selectedConversationId 
     ? conversations.find(c => c.id === selectedConversationId) 
     : null;
   const dryness = useDryness(draft);
+
+  // Scroll to bottom function
+  const scrollToBottom = (smooth = false) => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior: smooth ? 'smooth' : 'auto'
+      });
+    }
+  };
+
+  // Auto-scroll to bottom when messages change (only smooth scroll for new messages)
+  useEffect(() => {
+    if (selectedConversation?.messages) {
+      // Immediate scroll to bottom when conversation changes
+      scrollToBottom(false);
+    }
+  }, [selectedConversationId]);
+
+  // Smooth scroll when new messages are added
+  useEffect(() => {
+    if (selectedConversation?.messages && selectedConversation.messages.length > 0) {
+      // Small delay to ensure DOM is updated
+      setTimeout(() => scrollToBottom(true), 100);
+    }
+  }, [selectedConversation?.messages?.length]);
+
+  // Initial scroll to bottom when component mounts with messages
+  useEffect(() => {
+    if (selectedConversation?.messages && selectedConversation.messages.length > 0) {
+      // Immediate scroll to bottom on initial load
+      scrollToBottom(false);
+    }
+  }, [selectedConversation?.messages]);
 
   // Check authentication status
   useEffect(() => {
@@ -68,6 +107,18 @@ function ChatContent() {
       .map(word => word.charAt(0).toUpperCase())
       .slice(0, 2)
       .join('');
+  };
+
+  // Helper function to determine if timestamp should be shown
+  const shouldShowTimestamp = (currentMessage: any, previousMessage: any) => {
+    if (!previousMessage) return true; // Always show timestamp for first message
+    
+    const currentTime = new Date(currentMessage.timestamp);
+    const previousTime = new Date(previousMessage.timestamp);
+    const timeDiff = currentTime.getTime() - previousTime.getTime();
+    const oneHour = 60 * 60 * 1000; // 1 hour in milliseconds
+    
+    return timeDiff >= oneHour;
   };
 
   // Load conversations from Supabase
@@ -109,9 +160,8 @@ function ChatContent() {
                 messages: messages.map(msg => ({
                   id: msg.id,
                   text: msg.content.text,
-                  sender: msg.senderId === otherUserId ? 'them' : 'me', // Show messages from other user as 'them'
-                  timestamp: msg.timestamp,
-                  quality: msg.analysis.quality === 'engaging' ? 'playful' : msg.analysis.quality
+                  sender: msg.senderId === user?.id ? 'me' : 'them', // Show messages from current user as 'me'
+                  timestamp: msg.timestamp
                 })),
                 metrics: {
                   daysSinceReply: conversation.metrics.daysSinceLastReply,
@@ -192,19 +242,26 @@ function ChatContent() {
       return;
     }
 
+    if (!user?.id) {
+      console.error('No authenticated user found');
+      toast.error('Please log in to send messages');
+      return;
+    }
+
     try {
-      // Use the first participant as the sender for now (this should be replaced with actual user auth)
-      if (!selectedConversation.participants || selectedConversation.participants.length === 0) {
-        console.error('No participants found in conversation');
-        toast.error('Cannot send message: no participants in conversation');
-        return;
-      }
+      // Ensure the current user exists in the users table
+      await supabaseDatabase.ensureUserExists(user.id, {
+        profile: {
+          name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+          alias: user.user_metadata?.full_name || user.email?.split('@')[0] || 'user',
+          avatar: user.user_metadata?.avatar_url || '',
+          bio: '',
+          timezone: 'UTC',
+          language: 'en'
+        }
+      });
       
-      const senderId = selectedConversation.participants[0]; // Use first participant as sender
-      
-      // Analyze message dryness
-      const drynessScore = analyzeDryness(draft);
-      const quality = determineQuality(draft, drynessScore);
+      const senderId = user.id; // Use current user as sender
       
       // Add message to Supabase database
       await supabaseDatabase.addMessage({
@@ -216,12 +273,12 @@ function ChatContent() {
         },
         timestamp: new Date().toISOString(),
         analysis: {
-          quality,
-          sentiment: 'positive', // Simplified for now
+          quality: 'neutral',
+          sentiment: 'positive',
           intent: 'statement',
           requiresResponse: false,
           urgency: 'low',
-          drynessScore
+          drynessScore: 0
         },
         status: {
           delivered: false,
@@ -230,9 +287,6 @@ function ChatContent() {
         }
       });
 
-      // Show success message
-      toast.success('Message sent successfully!');
-      
       // Clear draft
       setDraft('');
       setShowSuggestions(false);
@@ -295,6 +349,9 @@ function ChatContent() {
       if (selectedConversation.ghostScore > 50) {
         triggerConfetti();
       }
+      
+      // Scroll to bottom after sending message
+      setTimeout(() => scrollToBottom(true), 200);
     } catch (error) {
       console.error('Error sending message:', error);
       toast.error('Failed to send message');
@@ -366,10 +423,10 @@ function ChatContent() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       <TopBar onSearch={setSearchQuery} user={user} />
       
-      <div className="flex-1 flex">
+      <div className="flex-1 flex min-h-0">
         {/* Left Panel - Conversations */}
         <div className="w-80 border-r border-border flex flex-col">
           {/* Filters */}
@@ -448,11 +505,11 @@ function ChatContent() {
         </div>
 
         {/* Middle Panel - Chat Thread */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-h-0">
           {selectedConversation ? (
             <>
               {/* Chat Header */}
-              <div className="p-4 border-b border-border">
+              <div className="p-4 border-b border-border flex-shrink-0">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-sm font-medium">
@@ -463,67 +520,95 @@ function ChatContent() {
                       <p className="text-sm text-muted-foreground">{selectedConversation.lastSeen}</p>
                     </div>
                   </div>
-                  <GhostBadge 
-                    score={selectedConversation.ghostScore} 
-                    showPulse={selectedConversation.ghostScore > 80}
-                  />
+                  <div className="flex items-center gap-3">
+                    {/* AI Assistance Toggle */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">AI</span>
+                      <button
+                        onClick={() => setAiAssistanceEnabled(!aiAssistanceEnabled)}
+                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                          aiAssistanceEnabled ? 'bg-primary' : 'bg-muted'
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                            aiAssistanceEnabled ? 'translate-x-5' : 'translate-x-1'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                    <GhostBadge 
+                      score={selectedConversation.ghostScore} 
+                      showPulse={selectedConversation.ghostScore > 80}
+                    />
+                  </div>
                 </div>
               </div>
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-1">
+              <div 
+                ref={messagesContainerRef}
+                className="flex-1 overflow-y-auto p-4 space-y-0 min-h-0"
+              >
                 <AnimatePresence>
-                  {selectedConversation.messages.map((message: any) => (
-                    <MessageBubble
-                      key={message.id}
-                      text={message.text}
-                      sender={message.sender}
-                      timestamp={message.timestamp}
-                      quality={message.quality}
-                    />
-                  ))}
+                  {selectedConversation.messages.map((message: any, index: number) => {
+                    const previousMessage = index > 0 ? selectedConversation.messages[index - 1] : null;
+                    const showTimestamp = shouldShowTimestamp(message, previousMessage);
+                    
+                    return (
+                      <MessageBubble
+                        key={message.id}
+                        text={message.text}
+                        sender={message.sender}
+                        timestamp={message.timestamp}
+                        showTimestamp={showTimestamp}
+                      />
+                    );
+                  })}
                 </AnimatePresence>
+                {/* Invisible element to scroll to */}
+                <div ref={messagesEndRef} />
               </div>
 
-              {/* Message Composer */}
-              <div className="p-4 border-t border-border">
-                <AnimatePresence>
-                  {showSuggestions && suggestions.length > 0 && (
-                    <DraftCoachBanner
-                      suggestions={suggestions}
-                      onSelectSuggestion={handleSelectSuggestion}
-                    />
-                  )}
-                </AnimatePresence>
+                {/* Message Composer */}
+                <div className="p-4 border-t border-border flex-shrink-0 bg-background">
+                  <AnimatePresence>
+                    {aiAssistanceEnabled && showSuggestions && suggestions.length > 0 && (
+                      <DraftCoachBanner
+                        suggestions={suggestions}
+                        onSelectSuggestion={handleSelectSuggestion}
+                      />
+                    )}
+                  </AnimatePresence>
 
-                {/* Autofill Suggestions */}
-                <AnimatePresence>
-                  {showAutofill && autofillSuggestions.length > 0 && !showSuggestions && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg"
-                    >
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                        <span className="text-sm font-medium text-blue-900">Smart Suggestions</span>
-                        <span className="text-xs text-blue-600">Based on {selectedConversation?.name}'s preferences</span>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {autofillSuggestions.slice(0, 3).map((suggestion, index) => (
-                          <button
-                            key={index}
-                            onClick={() => handleSelectAutofillSuggestion(suggestion)}
-                            className="px-3 py-1 bg-white border border-blue-200 rounded-full text-sm text-blue-800 hover:bg-blue-100 transition-colors"
-                          >
-                            {suggestion}
-                          </button>
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                  {/* Autofill Suggestions */}
+                  <AnimatePresence>
+                    {aiAssistanceEnabled && showAutofill && autofillSuggestions.length > 0 && !showSuggestions && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg"
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          <span className="text-sm font-medium text-blue-900">Smart Suggestions</span>
+                          <span className="text-xs text-blue-600">Based on {selectedConversation?.name}'s preferences</span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {autofillSuggestions.slice(0, 3).map((suggestion, index) => (
+                            <button
+                              key={index}
+                              onClick={() => handleSelectAutofillSuggestion(suggestion)}
+                              className="px-3 py-1 bg-white border border-blue-200 rounded-full text-sm text-blue-800 hover:bg-blue-100 transition-colors"
+                            >
+                              {suggestion}
+                            </button>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
                 <div className="flex gap-3">
                   <div className="flex-1 relative">
@@ -599,35 +684,23 @@ function ChatContent() {
         </div>
 
         {/* Right Panel - AI Sidekick */}
-        <div className="hidden xl:block w-96 border-l border-border">
-          <div className="h-full overflow-y-auto">
-            <AIBox
-              currentDraft={draft}
-              lastMessages={selectedConversation?.messages.slice(-3).map((m: any) => m.text) || []}
-              metrics={selectedConversation?.metrics || { daysSinceReply: 0, responseRate: 0, averageDryness: 0, ghostScoreTrend: 0 }}
-              className="h-full"
-            />
+        {aiAssistanceEnabled && (
+          <div className="hidden xl:block w-96 border-l border-border">
+            <div className="h-full overflow-y-auto">
+              <AIBox
+                currentDraft={draft}
+                lastMessages={selectedConversation?.messages.slice(-3).map((m: any) => m.text) || []}
+                metrics={selectedConversation?.metrics || { daysSinceReply: 0, responseRate: 0, averageDryness: 0, ghostScoreTrend: 0 }}
+                className="h-full"
+              />
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
 }
 
-// Helper functions for message analysis
-function analyzeDryness(text: string): number {
-  const dryWords = ['k', 'ok', 'sure', 'yeah', 'fine', 'whatever'];
-  const words = text.toLowerCase().split(' ');
-  const dryCount = words.filter(word => dryWords.includes(word)).length;
-  return Math.min(dryCount / words.length, 1);
-}
-
-function determineQuality(text: string, drynessScore: number): 'dry' | 'neutral' | 'playful' | 'engaging' {
-  if (drynessScore > 0.7) return 'dry';
-  if (drynessScore > 0.4) return 'neutral';
-  if (text.includes('!') || text.includes('?')) return 'playful';
-  return 'engaging';
-}
 
 function formatLastSeen(lastActiveAt: string): string {
   const now = new Date();
