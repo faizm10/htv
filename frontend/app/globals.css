@@ -1,0 +1,155 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@700&display=swap');
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --radius: 0.625rem;
+  
+  /* GhostWing Dark Theme */
+  --background: #0b0f17;
+  --foreground: #E6EDF3;
+  --card: #121827;
+  --card-foreground: #E6EDF3;
+  --popover: #121827;
+  --popover-foreground: #E6EDF3;
+  --primary: #9b8cff;
+  --primary-foreground: #0b0f17;
+  --secondary: #1a2332;
+  --secondary-foreground: #E6EDF3;
+  --muted: #1a2332;
+  --muted-foreground: #94a3b8;
+  --accent: #93ff7a;
+  --accent-foreground: #0b0f17;
+  --destructive: #ff5470;
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(255, 255, 255, 0.15);
+  --ring: #9b8cff;
+  
+  /* GhostWing Custom Colors */
+  --ghost-bg: #0b0f17;
+  --ghost-panel: #121827;
+  --ghost-ink: #E6EDF3;
+  --ghost-slime: #93ff7a;
+  --ghost-ectoplasm: #9b8cff;
+  --ghost-haunt: #ff5470;
+  --ghost-glow-ectoplasm: 0 0 20px rgba(155, 140, 255, 0.35);
+  --ghost-glow-slime: 0 0 20px rgba(147, 255, 122, 0.35);
+  --ghost-glow-haunt: 0 0 20px rgba(255, 84, 112, 0.35);
+  
+  --chart-1: #9b8cff;
+  --chart-2: #93ff7a;
+  --chart-3: #ff5470;
+  --chart-4: #fbbf24;
+  --chart-5: #f97316;
+  --sidebar: #121827;
+  --sidebar-foreground: #E6EDF3;
+  --sidebar-primary: #9b8cff;
+  --sidebar-primary-foreground: #0b0f17;
+  --sidebar-accent: #1a2332;
+  --sidebar-accent-foreground: #E6EDF3;
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-ring: #9b8cff;
+}
+
+/* GhostWing is dark-first, so no separate dark theme needed */
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Sora', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+}
+
+@layer components {
+  .ghost-card {
+    @apply bg-card border border-border rounded-2xl shadow-[0_0_0_1px_rgba(255,255,255,0.06),0_10px_30px_-10px_rgba(155,140,255,0.3)];
+  }
+  
+  .ghost-badge-tier-alive {
+    @apply bg-green-400 text-gray-900 shadow-lg;
+    filter: drop-shadow(0 0 20px rgba(147, 255, 122, 0.35));
+  }
+  
+  .ghost-badge-tier-slow {
+    @apply bg-amber-500 text-white shadow-lg;
+  }
+  
+  .ghost-badge-tier-advanced {
+    @apply bg-orange-500 text-white shadow-lg;
+  }
+  
+  .ghost-badge-tier-poltergeist {
+    @apply bg-red-500 text-white shadow-lg;
+    filter: drop-shadow(0 0 20px rgba(255, 84, 112, 0.35));
+  }
+  
+  .message-quality-dry {
+    @apply bg-amber-500/20 text-amber-400 border border-amber-500/30;
+  }
+  
+  .message-quality-neutral {
+    @apply bg-slate-500/20 text-slate-400 border border-slate-500/30;
+  }
+  
+  .message-quality-playful {
+    @apply bg-purple-500/20 text-purple-400 border border-purple-500/30;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
