@@ -117,8 +117,8 @@ export function ChatWithAutofill({ conversationId }: ChatWithAutofillProps) {
       <div className="p-4 border-b bg-white">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-              {otherUser.profile.avatar}
+            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-sm font-medium">
+              {otherUser.profile.name.split(' ').map(word => word.charAt(0).toUpperCase()).slice(0, 2).join('')}
             </div>
             <div>
               <h2 className="font-semibold">{otherUser.profile.name}</h2>

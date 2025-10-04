@@ -38,6 +38,15 @@ export default function ChatPage() {
     : null;
   const dryness = useDryness(draft);
 
+  // Helper function to generate initials from name
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase())
+      .slice(0, 2)
+      .join('');
+  };
+
   // Load conversations from Supabase
   useEffect(() => {
     const loadConversations = async () => {
@@ -65,6 +74,7 @@ export default function ChatPage() {
               
               legacyConversations.push({
                 id: conversation.id,
+                participants: conversation.participants, // Preserve participants field
                 name: otherUser.profile.name,
                 alias: otherUser.profile.alias,
                 avatar: otherUser.profile.avatar,
@@ -154,10 +164,19 @@ export default function ChatPage() {
   }, [dryness.score, draft]);
 
   const handleSendMessage = async () => {
-    if (!draft.trim() || !selectedConversation) return;
+    if (!draft.trim() || !selectedConversation) {
+      console.warn('Cannot send message: no draft or no conversation selected');
+      return;
+    }
 
     try {
       // Use the first participant as the sender for now (this should be replaced with actual user auth)
+      if (!selectedConversation.participants || selectedConversation.participants.length === 0) {
+        console.error('No participants found in conversation');
+        toast.error('Cannot send message: no participants in conversation');
+        return;
+      }
+      
       const senderId = selectedConversation.participants[0]; // Use first participant as sender
       
       // Analyze message dryness
@@ -215,6 +234,7 @@ export default function ChatPage() {
             
             legacyConversations.push({
               id: conversation.id,
+              participants: conversation.participants, // Preserve participants field
               name: otherUser.profile.name,
               alias: otherUser.profile.alias,
               avatar: otherUser.profile.avatar,
@@ -364,7 +384,7 @@ export default function ChatPage() {
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-sm font-medium">
-                        {conversation.avatar}
+                        {getInitials(conversation.name)}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
@@ -405,7 +425,7 @@ export default function ChatPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-sm font-medium">
-                      {selectedConversation.avatar}
+                      {getInitials(selectedConversation.name)}
                     </div>
                     <div>
                       <h2 className="font-semibold">{selectedConversation.name}</h2>
@@ -485,7 +505,9 @@ export default function ChatPage() {
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault();
-                          handleSendMessage();
+                          if (selectedConversation) {
+                            handleSendMessage();
+                          }
                         }
                         if (e.key === 'Escape') {
                           setDraft('');
@@ -501,7 +523,7 @@ export default function ChatPage() {
                   </div>
                   <button
                     onClick={handleSendMessage}
-                    disabled={!draft.trim()}
+                    disabled={!draft.trim() || !selectedConversation}
                     className="px-4 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed relative"
                   >
                     <Send className="w-4 h-4" />
