@@ -359,7 +359,7 @@ class MockDatabaseService implements DatabaseService {
       },
       // Laura - Hiking and photography enthusiast
       {
-        id: 'laura_id',
+        id: '550e8400-e29b-41d4-a716-446655440001',
         profile: {
           name: 'Laura',
           alias: 'Laura',
@@ -386,12 +386,12 @@ class MockDatabaseService implements DatabaseService {
           closeness: 'close_friend',
           metIn: 'school',
           sharedInterests: ['hiking', 'photography', 'nature'],
-          mutualConnections: ['faiz_id']
+          mutualConnections: ['550e8400-e29b-41d4-a716-446655440002']
         }
       },
       // Faiz - Software engineer and coffee enthusiast
       {
-        id: 'faiz_id',
+        id: '550e8400-e29b-41d4-a716-446655440002',
         profile: {
           name: 'Faiz',
           alias: 'Faiz',
@@ -415,15 +415,15 @@ class MockDatabaseService implements DatabaseService {
           lastActiveAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
         },
         relationship: {
-          closeness: 'good_friend',
+          closeness: 'close_friend',
           metIn: 'work',
           sharedInterests: ['technology', 'coffee', 'coding'],
-          mutualConnections: ['laura_id']
+          mutualConnections: ['550e8400-e29b-41d4-a716-446655440001']
         }
       },
       // Smith - Musician and dog lover
       {
-        id: 'smith_id',
+        id: '550e8400-e29b-41d4-a716-446655440003',
         profile: {
           name: 'Smith',
           alias: 'Smith',
@@ -450,12 +450,12 @@ class MockDatabaseService implements DatabaseService {
           closeness: 'acquaintance',
           metIn: 'social',
           sharedInterests: ['music', 'art', 'creativity'],
-          mutualConnections: ['wosly_id']
+          mutualConnections: ['550e8400-e29b-41d4-a716-446655440004']
         }
       },
       // Wosly - Artist and yoga instructor
       {
-        id: 'wosly_id',
+        id: '550e8400-e29b-41d4-a716-446655440004',
         profile: {
           name: 'Wosly',
           alias: 'Wosly',
@@ -474,15 +474,15 @@ class MockDatabaseService implements DatabaseService {
         analytics: {
           averageResponseTime: 1.2,
           responseRate: 0.95,
-          messageFrequency: 'very_high',
+          messageFrequency: 'high',
           engagementScore: 95,
           lastActiveAt: new Date(Date.now() - 10 * 60 * 1000).toISOString()
         },
         relationship: {
-          closeness: 'best_friend',
+          closeness: 'close_friend',
           metIn: 'online',
           sharedInterests: ['art', 'yoga', 'wellness', 'music'],
-          mutualConnections: ['smith_id']
+          mutualConnections: ['550e8400-e29b-41d4-a716-446655440003']
         }
       }
     ];
@@ -590,8 +590,8 @@ class MockDatabaseService implements DatabaseService {
       },
       // Laura & Faiz conversation - Hiking plans
       {
-        id: 'conv_laura_faiz',
-        participants: ['laura_id', 'faiz_id'],
+        id: '650e8400-e29b-41d4-a716-446655440001',
+        participants: ['550e8400-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440002'],
         metadata: {
           title: 'Laura & Faiz',
           type: 'direct',
@@ -624,8 +624,8 @@ class MockDatabaseService implements DatabaseService {
       },
       // Smith & Wosly conversation - Music collaboration
       {
-        id: 'conv_smith_wosly',
-        participants: ['smith_id', 'wosly_id'],
+        id: '650e8400-e29b-41d4-a716-446655440002',
+        participants: ['550e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440004'],
         metadata: {
           title: 'Smith & Wosly',
           type: 'direct',
@@ -636,7 +636,7 @@ class MockDatabaseService implements DatabaseService {
         },
         context: {
           currentTopic: 'music collaboration',
-          mood: 'excited',
+          mood: 'positive',
           urgency: 'medium',
           requiresResponse: true,
           suggestedActions: ['plan_details', 'share_excitement']
@@ -647,7 +647,7 @@ class MockDatabaseService implements DatabaseService {
           averageDryness: 1.8,
           daysSinceLastReply: 0,
           messageCount: 3,
-          conversationHealth: 'excellent'
+          conversationHealth: 'healthy'
         },
         settings: {
           notifications: true,
@@ -852,6 +852,104 @@ class MockDatabaseService implements DatabaseService {
           requiresResponse: false,
           urgency: 'low',
           drynessScore: 0.0
+        },
+        status: { delivered: true, read: false, edited: false }
+      },
+      // Laura & Faiz conversation messages
+      {
+        id: 'msg_laura_faiz_1',
+        conversationId: '650e8400-e29b-41d4-a716-446655440001',
+        senderId: '550e8400-e29b-41d4-a716-446655440001',
+        content: { text: "Hey Faiz! How's your week going?", type: 'text' },
+        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+        analysis: {
+          quality: 'engaging',
+          sentiment: 'positive',
+          intent: 'question',
+          requiresResponse: true,
+          urgency: 'low',
+          drynessScore: 1.2
+        },
+        status: { delivered: true, read: true, readAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), edited: false }
+      },
+      {
+        id: 'msg_laura_faiz_2',
+        conversationId: '650e8400-e29b-41d4-a716-446655440001',
+        senderId: '550e8400-e29b-41d4-a716-446655440002',
+        content: { text: "Pretty good! Just finished a big project. How about you?", type: 'text' },
+        timestamp: new Date(Date.now() - 90 * 60 * 1000).toISOString(),
+        analysis: {
+          quality: 'engaging',
+          sentiment: 'positive',
+          intent: 'statement',
+          requiresResponse: true,
+          urgency: 'low',
+          drynessScore: 1.5
+        },
+        status: { delivered: true, read: true, readAt: new Date(Date.now() - 90 * 60 * 1000).toISOString(), edited: false }
+      },
+      {
+        id: 'msg_laura_faiz_3',
+        conversationId: '650e8400-e29b-41d4-a716-446655440001',
+        senderId: 'laura_id',
+        content: { text: "Nice! I'm thinking of going hiking this weekend. Want to join?", type: 'text' },
+        timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
+        analysis: {
+          quality: 'playful',
+          sentiment: 'positive',
+          intent: 'question',
+          requiresResponse: true,
+          urgency: 'medium',
+          drynessScore: 0.8
+        },
+        status: { delivered: true, read: false, edited: false }
+      },
+      // Smith & Wosly conversation messages
+      {
+        id: 'msg_smith_wosly_1',
+        conversationId: '650e8400-e29b-41d4-a716-446655440002',
+        senderId: '550e8400-e29b-41d4-a716-446655440004',
+        content: { text: "Smith! I just had the most amazing idea for our song 🎵", type: 'text' },
+        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+        analysis: {
+          quality: 'engaging',
+          sentiment: 'positive',
+          intent: 'statement',
+          requiresResponse: true,
+          urgency: 'medium',
+          drynessScore: 0.5
+        },
+        status: { delivered: true, read: true, readAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), edited: false }
+      },
+      {
+        id: 'msg_smith_wosly_2',
+        conversationId: '650e8400-e29b-41d4-a716-446655440002',
+        senderId: '550e8400-e29b-41d4-a716-446655440003',
+        content: { text: "Ooh tell me more! I'm all ears 👂", type: 'text' },
+        timestamp: new Date(Date.now() - 90 * 60 * 1000).toISOString(),
+        analysis: {
+          quality: 'playful',
+          sentiment: 'positive',
+          intent: 'question',
+          requiresResponse: true,
+          urgency: 'medium',
+          drynessScore: 0.3
+        },
+        status: { delivered: true, read: true, readAt: new Date(Date.now() - 90 * 60 * 1000).toISOString(), edited: false }
+      },
+      {
+        id: 'msg_smith_wosly_3',
+        conversationId: '650e8400-e29b-41d4-a716-446655440002',
+        senderId: '550e8400-e29b-41d4-a716-446655440004',
+        content: { text: "What if we add some nature sounds to the intro? Like birds chirping and water flowing 🌊", type: 'text' },
+        timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+        analysis: {
+          quality: 'engaging',
+          sentiment: 'positive',
+          intent: 'statement',
+          requiresResponse: true,
+          urgency: 'medium',
+          drynessScore: 0.7
         },
         status: { delivered: true, read: false, edited: false }
       }
