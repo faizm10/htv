@@ -132,62 +132,153 @@ export function useDemoData(): Conversation[] {
       }
     },
     {
-      id: 'sam',
-      name: 'Sam',
-      avatar: 'S',
-      ghostScore: 67,
-      lastMessage: 'lol',
-      lastMessageTime: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
+      id: 'laura',
+      name: 'Laura D\'Souza',
+      avatar: 'LD',
+      ghostScore: 25,
+      lastMessage: 'show em whose the boss',
+      lastMessageTime: new Date(Date.now() - 0.4 * 60 * 60 * 1000),
       unreadCount: 0,
       messages: [
         {
           id: '1',
-          text: 'Did you see the new season of that show?',
+          text: 'Not as cool as e7',
           sender: 'them',
-          timestamp: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
+          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
           quality: 'Playful'
         },
         {
           id: '2',
-          text: 'Not yet, is it good?',
-          sender: 'me',
-          timestamp: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
+          text: 'This video can only be replayed once. Use the mobile app to view.',
+          sender: 'them',
+          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
           quality: 'Okay'
         },
         {
           id: '3',
-          text: 'Amazing! The plot twists are insane',
-          sender: 'them',
-          timestamp: new Date(Date.now() - 19 * 24 * 60 * 60 * 1000),
-          quality: 'Playful'
-        },
-        {
-          id: '4',
-          text: 'cool',
+          text: 'rip',
           sender: 'me',
-          timestamp: new Date(Date.now() - 19 * 24 * 60 * 60 * 1000),
+          timestamp: new Date(Date.now() - 1.8 * 60 * 60 * 1000),
           quality: 'Dry'
         },
         {
-          id: '5',
-          text: 'You should definitely watch it!',
+          id: '4',
+          text: 'Bruh I talked for 5 min to these two girls',
           sender: 'them',
-          timestamp: new Date(Date.now() - 18 * 24 * 60 * 60 * 1000),
+          timestamp: new Date(Date.now() - 1.5 * 60 * 60 * 1000),
+          quality: 'Playful'
+        },
+        {
+          id: '5',
+          text: 'Makes me wanna walk into a wall',
+          sender: 'them',
+          timestamp: new Date(Date.now() - 1.5 * 60 * 60 * 1000),
           quality: 'Playful'
         },
         {
           id: '6',
-          text: 'lol',
+          text: 'Why are cs kids built this way',
+          sender: 'them',
+          timestamp: new Date(Date.now() - 1.5 * 60 * 60 * 1000),
+          quality: 'Playful'
+        },
+        {
+          id: '7',
+          text: 'what did they say 😭',
           sender: 'me',
-          timestamp: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
-          quality: 'Dry'
+          timestamp: new Date(Date.now() - 1.3 * 60 * 60 * 1000),
+          quality: 'Playful'
+        },
+        {
+          id: '8',
+          text: 'dw tho',
+          sender: 'me',
+          timestamp: new Date(Date.now() - 1.3 * 60 * 60 * 1000),
+          quality: 'Playful'
+        },
+        {
+          id: '9',
+          text: 'i am coming to the rescue',
+          sender: 'me',
+          timestamp: new Date(Date.now() - 1.3 * 60 * 60 * 1000),
+          quality: 'Playful'
+        },
+        {
+          id: '10',
+          text: '30 min out',
+          sender: 'me',
+          timestamp: new Date(Date.now() - 1.3 * 60 * 60 * 1000),
+          quality: 'Playful'
+        },
+        {
+          id: '11',
+          text: 'No like',
+          sender: 'them',
+          timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000),
+          quality: 'Playful'
+        },
+        {
+          id: '12',
+          text: 'This girls',
+          sender: 'them',
+          timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000),
+          quality: 'Playful'
+        },
+        {
+          id: '13',
+          text: 'In hs',
+          sender: 'them',
+          timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000),
+          quality: 'Playful'
+        },
+        {
+          id: '14',
+          text: 'And is like oh my teachers were talking marks off cuz I\'m too smart',
+          sender: 'them',
+          timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000),
+          quality: 'Playful'
+        },
+        {
+          id: '15',
+          text: 'Like respectfully stfu',
+          sender: 'them',
+          timestamp: new Date(Date.now() - 0.8 * 60 * 60 * 1000),
+          quality: 'Playful'
+        },
+        {
+          id: '16',
+          text: 'No one likes u',
+          sender: 'them',
+          timestamp: new Date(Date.now() - 0.8 * 60 * 60 * 1000),
+          quality: 'Playful'
+        },
+        {
+          id: '17',
+          text: 'did u say that',
+          sender: 'me',
+          timestamp: new Date(Date.now() - 0.6 * 60 * 60 * 1000),
+          quality: 'Playful'
+        },
+        {
+          id: '18',
+          text: 'shud have said that',
+          sender: 'me',
+          timestamp: new Date(Date.now() - 0.6 * 60 * 60 * 1000),
+          quality: 'Playful'
+        },
+        {
+          id: '19',
+          text: 'show em whose the boss',
+          sender: 'me',
+          timestamp: new Date(Date.now() - 0.4 * 60 * 60 * 1000),
+          quality: 'Playful'
         }
       ],
       metrics: {
-        daysSinceReply: 14,
-        responseRate: 0.4,
-        averageDryness: 0.6,
-        ghostScoreTrend: [45, 48, 52, 58, 62, 65, 67]
+        daysSinceReply: 0,
+        responseRate: 0.8,
+        averageDryness: 0.2,
+        ghostScoreTrend: [25, 30, 35, 40, 45, 50, 55]
       }
     },
     {
