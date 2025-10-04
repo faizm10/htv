@@ -35,23 +35,23 @@ export default function LoginPage() {
 
         <div className="space-y-4">
           <div className="text-center text-sm text-muted-foreground mb-6">
-            This is a demo app. No authentication required.
+            Secure authentication required to access chat features.
           </div>
 
           <Link
-            href="/"
+            href="/auth/login"
             className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
           >
-            Enter Dashboard
+            Login to Chat
             <ArrowRight className="w-4 h-4" />
           </Link>
 
           <div className="text-center">
             <Link
-              href="/chat"
+              href="/"
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              Or go straight to conversations →
+              Or go to dashboard →
             </Link>
           </div>
         </div>

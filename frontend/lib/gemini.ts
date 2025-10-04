@@ -76,8 +76,9 @@ Rules:
 - Avoid being too formal unless the vibe requires it`;
   
   try {
-    const text = await callGeminiAPI(prompt);
-    return text.split(/\n+/).slice(0, 3).filter((line: string) => line.trim());
+    const res = await callGemini(prompt);
+    const text = 'response' in res ? res.response?.text() ?? "" : res.text();
+    return text.split(/\n+/).slice(0, 3).filter(line => line.trim());
   } catch (error) {
     console.error('Gemini rewrite error:', error);
     return [
@@ -92,8 +93,9 @@ export async function generateNudge(ctx: { context: string }) {
   const prompt = `Produce 3 low-risk nudges with 2 concrete options and an easy opt-out. <=120 chars each. Context: ${ctx.context}`;
   
   try {
-    const text = await callGeminiAPI(prompt);
-    return text.split(/\n+/).slice(0, 3).filter((line: string) => line.trim());
+    const res = await callGemini(prompt);
+    const text = 'response' in res ? res.response?.text() ?? "" : res.text();
+    return text.split(/\n+/).slice(0, 3).filter(line => line.trim());
   } catch (error) {
     console.error('Gemini nudge error:', error);
     return [
@@ -108,7 +110,8 @@ export async function generateExit() {
   const prompt = `Polite exit message, <=140 chars, neutral tone:`;
   
   try {
-    const text = await callGeminiAPI(prompt);
+    const res = await callGemini(prompt);
+    const text = 'response' in res ? res.response?.text() ?? "" : res.text();
     return [text.trim()];
   } catch (error) {
     console.error('Gemini exit error:', error);

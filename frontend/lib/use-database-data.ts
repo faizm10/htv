@@ -36,8 +36,8 @@ export interface LegacyMessage {
 // Conversion functions
 function convertToLegacyConversation(conversation: Conversation, otherUser: User, messages: Message[]): LegacyConversation {
   const lastMessage = messages[messages.length - 1];
-  const isActive = otherUser.analytics.lastActiveAt && 
-    new Date(otherUser.analytics.lastActiveAt) > new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const isActive = Boolean(otherUser.analytics.lastActiveAt && 
+    new Date(otherUser.analytics.lastActiveAt) > new Date(Date.now() - 24 * 60 * 60 * 1000));
   
   return {
     id: conversation.id,
@@ -154,7 +154,7 @@ export async function getAutofillSuggestions(conversationId: string, context?: s
   return mockDatabase.generateSuggestions(conversationId, context || '');
 }
 
-export async function getConversationContext(conversationId: string): Promise<{
+export async function getConversationContext(conversationId: string, context?: string): Promise<{
   conversation: Conversation;
   otherUser: User;
   recentMessages: Message[];

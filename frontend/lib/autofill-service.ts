@@ -107,7 +107,7 @@ export class AutofillService {
         'coffee': ['Found any new coffee spots?', 'Tried that new café downtown yet?'],
         'food': ['Cooked anything delicious lately?', 'Tried any new restaurants?'],
         'travel': ['Planning any trips?', 'Been anywhere interesting recently?'],
-        'movies': ['Watched anything good lately?', 'Seen that new movie everyone's talking about?']
+        'movies': ['Watched anything good lately?', 'Seen that new movie everyone&apos;s talking about?']
       };
 
       const questions = questionMap[interest.toLowerCase()] || [];

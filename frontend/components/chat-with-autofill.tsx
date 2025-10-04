@@ -81,7 +81,8 @@ export function ChatWithAutofill({ conversationId }: ChatWithAutofillProps) {
           delivered: false,
           read: false,
           edited: false
-        }
+        },
+        timestamp: new Date().toISOString()
       });
 
       // Update local state
