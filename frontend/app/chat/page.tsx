@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Ghost, Filter, Search, Send } from 'lucide-react';
+import { Ghost, Filter, Search, Send, BarChart3 } from 'lucide-react';
 import { GhostBadge } from '@/components/ui/ghost-badge';
 import { MessageBubble } from '@/components/ui/message-bubble';
 import { DraftCoachBanner } from '@/components/ui/draft-coach-banner';

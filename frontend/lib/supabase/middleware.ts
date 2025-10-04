@@ -48,12 +48,16 @@ export async function updateSession(request: NextRequest) {
     // Continue without authentication for development
   }
 
+  // Temporarily disable all auth redirects for development
+  // TODO: Re-enable when Supabase project is properly configured
+  /*
   if (
     !user &&
     request.nextUrl.pathname !== '/' &&
     !request.nextUrl.pathname.startsWith('/login') &&
     !request.nextUrl.pathname.startsWith('/auth') &&
     !request.nextUrl.pathname.startsWith('/demo') &&
+    !request.nextUrl.pathname.startsWith('/insights-demo') &&
     !request.nextUrl.pathname.startsWith('/api')
   ) {
     // no user, potentially respond by redirecting the user to the login page
@@ -61,6 +65,7 @@ export async function updateSession(request: NextRequest) {
     url.pathname = '/auth/login'
     return NextResponse.redirect(url)
   }
+  */
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is.
   // If you're creating a new response object with NextResponse.next() make sure to:

@@ -99,12 +99,19 @@ export default function LandingPage() {
               </span>
             </Link>
             
-            <Link
-              href="/demo"
-              className="px-8 py-4 border-2 border-gray-600 hover:border-gray-500 text-gray-300 hover:text-white rounded-xl font-semibold text-lg transition-all duration-300"
-            >
-              View Demo
-            </Link>
+                <Link
+                  href="/demo"
+                  className="px-8 py-4 border-2 border-gray-600 hover:border-gray-500 text-gray-300 hover:text-white rounded-xl font-semibold text-lg transition-all duration-300"
+                >
+                  View Demo
+                </Link>
+                
+                <Link
+                  href="/insights-demo"
+                  className="px-8 py-4 border-2 border-purple-600 hover:border-purple-500 text-purple-300 hover:text-white rounded-xl font-semibold text-lg transition-all duration-300"
+                >
+                  View Insights
+                </Link>
           </motion.div>
         </motion.div>
       </div>
