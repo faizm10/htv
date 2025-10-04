@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Wand2, RefreshCw, DoorOpen, BarChart3, Sparkles } from 'lucide-react';
+import { Wand2, RefreshCw, DoorOpen, BarChart3, Sparkles, ChevronDown, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MetricCard } from './metric-card';
 import { generateRewrite, generateNudge, generateExit } from '@/lib/gemini';
@@ -25,6 +25,15 @@ export function AIBox({ currentDraft, lastMessages, metrics, className }: AIBoxP
   const [activeTab, setActiveTab] = useState<TabType>('nudge');
   const [isGenerating, setIsGenerating] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  
+  // Rewrite tab state
+  const [rewriteMessage, setRewriteMessage] = useState('');
+  const [customVibe, setCustomVibe] = useState('');
+  const [selectedVibe, setSelectedVibe] = useState('');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [focusedVibeIndex, setFocusedVibeIndex] = useState(-1);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const tabs = [
     { id: 'nudge' as const, label: 'Nudge', icon: Wand2 },
@@ -32,6 +41,87 @@ export function AIBox({ currentDraft, lastMessages, metrics, className }: AIBoxP
     { id: 'exit' as const, label: 'Exit', icon: DoorOpen },
     { id: 'insights' as const, label: 'Insights', icon: BarChart3 },
   ];
+
+  const predefinedVibes = [
+    'Playful',
+    'Professional',
+    'Casual',
+    'Flirty',
+    'Apologetic',
+    'Enthusiastic',
+    'Concerned',
+    'Grateful',
+    'Witty',
+    'Supportive',
+    'Mysterious',
+    'Direct',
+    'Warm',
+    'Confident',
+    'Humble'
+  ];
+
+  // Get filtered vibes based on custom input
+  const filteredVibes = predefinedVibes.filter(vibe =>
+    vibe.toLowerCase().includes(customVibe.toLowerCase())
+  );
+
+  // Handle keyboard navigation for dropdown
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!isDropdownOpen) return;
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setFocusedVibeIndex(prev => 
+          prev < filteredVibes.length - 1 ? prev + 1 : 0
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setFocusedVibeIndex(prev => 
+          prev > 0 ? prev - 1 : filteredVibes.length - 1
+        );
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (focusedVibeIndex >= 0 && focusedVibeIndex < filteredVibes.length) {
+          handleVibeSelect(filteredVibes[focusedVibeIndex]);
+        }
+        break;
+      case 'Escape':
+        setIsDropdownOpen(false);
+        setFocusedVibeIndex(-1);
+        inputRef.current?.blur();
+        break;
+    }
+  };
+
+  const handleVibeSelect = (vibe: string) => {
+    setSelectedVibe(vibe);
+    setCustomVibe(vibe);
+    setIsDropdownOpen(false);
+    setFocusedVibeIndex(-1);
+  };
+
+  const clearVibe = () => {
+    setSelectedVibe('');
+    setCustomVibe('');
+    setIsDropdownOpen(false);
+    setFocusedVibeIndex(-1);
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+        setFocusedVibeIndex(-1);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleGenerate = async (type: TabType) => {
     setIsGenerating(true);
@@ -43,9 +133,12 @@ export function AIBox({ currentDraft, lastMessages, metrics, className }: AIBoxP
           result = await generateNudge({ context: currentDraft });
           break;
         case 'rewrite':
+          const messageToRewrite = rewriteMessage || currentDraft;
+          const vibe = selectedVibe || customVibe;
           result = await generateRewrite({ 
-            draft: currentDraft, 
-            lastTurns: lastMessages 
+            draft: messageToRewrite, 
+            lastTurns: lastMessages,
+            ...(vibe && { vibe })
           });
           break;
         case 'exit':
@@ -97,14 +190,103 @@ export function AIBox({ currentDraft, lastMessages, metrics, className }: AIBoxP
         return (
           <div className="space-y-4">
             <div className="text-sm text-muted-foreground">
-              Rewrite your draft with AI suggestions
+              Rewrite your message with AI suggestions
             </div>
-            <div className="text-xs text-muted-foreground">
-              Draft: "{currentDraft || 'No draft yet'}"
+            
+            {/* Message Input */}
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-foreground">
+                Message to rewrite:
+              </label>
+              <textarea
+                value={rewriteMessage}
+                onChange={(e) => setRewriteMessage(e.target.value)}
+                placeholder="Enter the message you'd like to rewrite..."
+                className="w-full h-20 px-3 py-2 bg-muted border border-border rounded-lg resize-none text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+              />
             </div>
+
+            {/* Vibe Selection Toolbar */}
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-foreground">
+                Vibe/Tone:
+              </label>
+              <div className="relative" ref={dropdownRef}>
+                <div className="flex gap-2">
+                  <div className="flex-1 relative">
+                    <input
+                      ref={inputRef}
+                      type="text"
+                      value={customVibe}
+                      onChange={(e) => {
+                        setCustomVibe(e.target.value);
+                        setIsDropdownOpen(true);
+                        setFocusedVibeIndex(-1);
+                      }}
+                      onFocus={() => setIsDropdownOpen(true)}
+                      onKeyDown={handleKeyDown}
+                      placeholder="Type a vibe or select from dropdown..."
+                      className="w-full px-3 py-2 pr-8 bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                    <button
+                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-muted/80 rounded"
+                    >
+                      <ChevronDown className={cn(
+                        "w-4 h-4 transition-transform",
+                        isDropdownOpen && "rotate-180"
+                      )} />
+                    </button>
+                  </div>
+                  {selectedVibe && (
+                    <button
+                      onClick={clearVibe}
+                      className="px-3 py-2 bg-muted border border-border rounded-lg text-sm hover:bg-muted/80 transition-colors flex items-center gap-1"
+                    >
+                      <X className="w-3 h-3" />
+                      Clear
+                    </button>
+                  )}
+                </div>
+
+                {/* Dropdown */}
+                <AnimatePresence>
+                  {isDropdownOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto"
+                    >
+                      {filteredVibes.length > 0 ? (
+                        filteredVibes.map((vibe, index) => (
+                          <button
+                            key={vibe}
+                            onClick={() => handleVibeSelect(vibe)}
+                            className={cn(
+                              "w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors",
+                              index === focusedVibeIndex && "bg-muted",
+                              selectedVibe === vibe && "bg-primary/10 text-primary"
+                            )}
+                          >
+                            {vibe}
+                          </button>
+                        ))
+                      ) : (
+                        <div className="px-3 py-2 text-sm text-muted-foreground">
+                          No vibes found
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+
+            {/* Generate Button */}
             <button
               onClick={() => handleGenerate('rewrite')}
-              disabled={isGenerating || !currentDraft}
+              disabled={isGenerating || (!rewriteMessage && !currentDraft)}
               className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
             >
               {isGenerating ? (
@@ -119,6 +301,13 @@ export function AIBox({ currentDraft, lastMessages, metrics, className }: AIBoxP
                 </>
               )}
             </button>
+
+            {/* Current Draft Fallback */}
+            {!rewriteMessage && currentDraft && (
+              <div className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
+                <strong>Note:</strong> Using current draft as fallback: "{currentDraft}"
+              </div>
+            )}
           </div>
         );
 

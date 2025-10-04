@@ -34,8 +34,11 @@ async function callGemini(prompt: string) {
   return model.generateContent(prompt);
 }
 
-export async function generateRewrite(ctx: { draft: string, lastTurns: string[] }) {
-  const prompt = `Rewrite my draft into 3 short variants (casual | playful | concise), <=120 chars each. 
+export async function generateRewrite(ctx: { draft: string, lastTurns: string[], vibe?: string }) {
+  const vibeInstruction = ctx.vibe ? `Rewrite in a ${ctx.vibe.toLowerCase()} tone.` : 'Rewrite into 3 short variants (casual | playful | concise).';
+  
+  const prompt = `Rewrite my draft into 3 short variants, <=120 chars each. 
+${vibeInstruction}
 Rules: add at most 1 question if natural, avoid love-bombing, no emojis if tone is formal.
 Draft: ${ctx.draft}
 Last turns: ${ctx.lastTurns.join("\n")}`;
