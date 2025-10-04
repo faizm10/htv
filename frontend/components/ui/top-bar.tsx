@@ -2,19 +2,23 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Settings, Eye, EyeOff, Ghost } from 'lucide-react';
+import { Search, Settings, Eye, EyeOff, Ghost, User, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { createClient } from '@/lib/supabase/client';
+import { useRouter } from 'next/navigation';
 
 interface TopBarProps {
   onSearch: (query: string) => void;
   className?: string;
+  user?: any;
 }
 
-export function TopBar({ onSearch, className }: TopBarProps) {
+export function TopBar({ onSearch, className, user }: TopBarProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [redactMode, setRedactMode] = useState(false);
   const [ghostHoverTime, setGhostHoverTime] = useState(0);
   const [showGhost, setShowGhost] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -45,6 +49,12 @@ export function TopBar({ onSearch, className }: TopBarProps) {
     const query = e.target.value;
     setSearchQuery(query);
     onSearch(query);
+  };
+
+  const handleLogout = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push('/auth/login');
   };
 
   return (
@@ -104,6 +114,30 @@ export function TopBar({ onSearch, className }: TopBarProps) {
           {redactMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           {redactMode ? 'Redacted' : 'Redact'}
         </button>
+
+        {/* User Status */}
+        {user ? (
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 px-3 py-2 bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-lg text-sm">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span className="font-medium">
+                {user.email ? user.email.split('@')[0] : 'Logged in'}
+              </span>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+              title="Logout"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 px-3 py-2 bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-lg text-sm">
+            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+            <span className="font-medium">Not logged in</span>
+          </div>
+        )}
 
         {/* Settings */}
         <button className="p-2 text-muted-foreground hover:text-foreground transition-colors">

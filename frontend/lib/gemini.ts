@@ -42,7 +42,7 @@ Last turns: ${ctx.lastTurns.join("\n")}`;
   
   try {
     const res = await callGemini(prompt);
-    const text = (await res).text?.() ?? "";
+    const text = 'response' in res ? res.response?.text() ?? "" : res.text();
     return text.split(/\n+/).slice(0, 3).filter(line => line.trim());
   } catch (error) {
     console.error('Gemini rewrite error:', error);
@@ -59,7 +59,7 @@ export async function generateNudge(ctx: { context: string }) {
   
   try {
     const res = await callGemini(prompt);
-    const text = (await res).text?.() ?? "";
+    const text = 'response' in res ? res.response?.text() ?? "" : res.text();
     return text.split(/\n+/).slice(0, 3).filter(line => line.trim());
   } catch (error) {
     console.error('Gemini nudge error:', error);
@@ -76,7 +76,7 @@ export async function generateExit() {
   
   try {
     const res = await callGemini(prompt);
-    const text = (await res).text?.() ?? "";
+    const text = 'response' in res ? res.response?.text() ?? "" : res.text();
     return [text.trim()];
   } catch (error) {
     console.error('Gemini exit error:', error);
