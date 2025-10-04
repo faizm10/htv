@@ -215,11 +215,12 @@ export default function ChatPage() {
       setShowSuggestions(false);
       
       // Refresh the entire conversation list to get updated data
-      const supabaseConversations = await supabaseDatabase.getConversations({ userId: 'current_user' });
+      const supabaseConversations = await supabaseDatabase.getConversations();
       const legacyConversations: any[] = [];
 
       for (const conversation of supabaseConversations) {
-        const otherUserId = conversation.participants.find(id => id !== 'current_user');
+        // Get the first participant as the "other user" for display purposes
+        const otherUserId = conversation.participants[0];
         if (otherUserId) {
           const [otherUser, messages] = await Promise.all([
             supabaseDatabase.getUser(otherUserId),
@@ -246,7 +247,7 @@ export default function ChatPage() {
               messages: messages.map(msg => ({
                 id: msg.id,
                 text: msg.content.text,
-                sender: msg.senderId === 'current_user' ? 'me' : 'them',
+                sender: msg.senderId === otherUserId ? 'them' : 'me',
                 timestamp: msg.timestamp,
                 quality: msg.analysis.quality === 'engaging' ? 'playful' : msg.analysis.quality
               })),

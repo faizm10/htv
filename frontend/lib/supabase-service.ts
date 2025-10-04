@@ -116,8 +116,8 @@ export class SupabaseDatabaseService implements DatabaseService {
       query = query.textSearch('conversations_search', filter.search);
     }
 
-    // Order by last message time
-    query = query.order('metadata->lastMessageAt', { ascending: false });
+    // Order by created time (simplified to avoid JSON field issues)
+    query = query.order('created_at', { ascending: false });
 
     const { data, error } = await query;
 
@@ -213,7 +213,6 @@ export class SupabaseDatabaseService implements DatabaseService {
   }
 
   async addMessage(message: Omit<Message, 'id'>): Promise<Message> {
-
     const { data, error } = await this.supabase
       .from('messages')
       .insert({
@@ -229,6 +228,7 @@ export class SupabaseDatabaseService implements DatabaseService {
       .single();
 
     if (error) {
+      console.error('Error adding message:', error);
       throw new Error(`Failed to add message: ${error.message}`);
     }
 
