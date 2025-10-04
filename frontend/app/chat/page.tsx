@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Ghost, Filter, Search, Send } from 'lucide-react';
 import { GhostBadge } from '@/components/ui/ghost-badge';
@@ -37,11 +37,25 @@ function ChatContent() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [aiAssistanceEnabled, setAiAssistanceEnabled] = useState(true);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const selectedConversation = selectedConversationId 
     ? conversations.find(c => c.id === selectedConversationId) 
     : null;
   const dryness = useDryness(draft);
+
+  // Scroll to bottom of messages
+  const scrollToBottom = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
+    }
+  };
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    scrollToBottom();
+  }, [selectedConversation?.messages]);
 
   // Check authentication status
   useEffect(() => {
@@ -70,8 +84,10 @@ function ChatContent() {
       .join('');
   };
 
-  // Load conversations from Supabase
+  // Load conversations from Supabase after user is authenticated
   useEffect(() => {
+    if (!user?.id) return; // Don't load conversations until user is authenticated
+
     const loadConversations = async () => {
       try {
         setLoading(true);
@@ -109,7 +125,7 @@ function ChatContent() {
                 messages: messages.map(msg => ({
                   id: msg.id,
                   text: msg.content.text,
-                  sender: msg.senderId === otherUserId ? 'them' : 'me', // Show messages from other user as 'them'
+                  sender: msg.senderId === user.id ? 'me' : 'them', // Show messages from current user as 'me'
                   timestamp: msg.timestamp,
                   quality: msg.analysis.quality === 'engaging' ? 'playful' : msg.analysis.quality
                 })),
@@ -134,7 +150,7 @@ function ChatContent() {
     };
 
     loadConversations();
-  }, []);
+  }, [user?.id]); // Depend on user.id so it reloads when user changes
 
   // Handle query parameter for auto-selecting conversation
   useEffect(() => {
@@ -178,13 +194,13 @@ function ChatContent() {
   });
 
   useEffect(() => {
-    // Show suggestions when draft is dry
-    if (dryness.score >= 0.6 && draft.trim()) {
+    // Show suggestions when draft is dry (only if AI assistance is enabled)
+    if (aiAssistanceEnabled && dryness.score >= 0.6 && draft.trim()) {
       setShowSuggestions(true);
     } else {
       setShowSuggestions(false);
     }
-  }, [dryness.score, draft]);
+  }, [dryness.score, draft, aiAssistanceEnabled]);
 
   const handleSendMessage = async () => {
     if (!draft.trim() || !selectedConversation) {
@@ -192,15 +208,26 @@ function ChatContent() {
       return;
     }
 
+    if (!user?.id) {
+      console.error('No authenticated user found');
+      toast.error('Please log in to send messages');
+      return;
+    }
+
     try {
-      // Use the first participant as the sender for now (this should be replaced with actual user auth)
-      if (!selectedConversation.participants || selectedConversation.participants.length === 0) {
-        console.error('No participants found in conversation');
-        toast.error('Cannot send message: no participants in conversation');
-        return;
-      }
+      // Ensure the current user exists in the users table
+      await supabaseDatabase.ensureUserExists(user.id, {
+        profile: {
+          name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+          alias: user.user_metadata?.full_name || user.email?.split('@')[0] || 'user',
+          avatar: user.user_metadata?.avatar_url || '',
+          bio: '',
+          timezone: 'UTC',
+          language: 'en'
+        }
+      });
       
-      const senderId = selectedConversation.participants[0]; // Use first participant as sender
+      const senderId = user.id; // Use current user as sender
       
       // Analyze message dryness
       const drynessScore = analyzeDryness(draft);
@@ -230,12 +257,12 @@ function ChatContent() {
         }
       });
 
-      // Show success message
-      toast.success('Message sent successfully!');
-      
       // Clear draft
       setDraft('');
       setShowSuggestions(false);
+      
+      // Scroll to bottom after sending message
+      setTimeout(() => scrollToBottom(), 100);
       
       // Refresh the entire conversation list to get updated data
       const supabaseConversations = await supabaseDatabase.getConversations();
@@ -270,7 +297,7 @@ function ChatContent() {
               messages: messages.map(msg => ({
                 id: msg.id,
                 text: msg.content.text,
-                sender: msg.senderId === otherUserId ? 'them' : 'me',
+                sender: msg.senderId === user.id ? 'me' : 'them',
                 timestamp: msg.timestamp,
                 quality: msg.analysis.quality === 'engaging' ? 'playful' : msg.analysis.quality
               })),
@@ -346,7 +373,7 @@ function ChatContent() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="h-screen bg-background flex flex-col overflow-hidden">
         <TopBar onSearch={setSearchQuery} user={user} />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
@@ -366,14 +393,14 @@ function ChatContent() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       <TopBar onSearch={setSearchQuery} user={user} />
       
-      <div className="flex-1 flex">
+      <div className="flex-1 flex overflow-hidden">
         {/* Left Panel - Conversations */}
-        <div className="w-80 border-r border-border flex flex-col">
+        <div className="w-80 border-r border-border flex flex-col overflow-hidden">
           {/* Filters */}
-          <div className="p-4 border-b border-border">
+          <div className="p-4 border-b border-border flex-shrink-0">
             <div className="flex gap-2 mb-4">
               {[
                 { id: 'all', label: 'All', count: conversations.length },
@@ -396,7 +423,7 @@ function ChatContent() {
           </div>
 
           {/* Conversations List */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto min-h-0">
             {filteredConversations.length === 0 ? (
               <div className="p-8 text-center text-muted-foreground">
                 <Ghost className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -448,11 +475,11 @@ function ChatContent() {
         </div>
 
         {/* Middle Panel - Chat Thread */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col overflow-hidden">
           {selectedConversation ? (
             <>
               {/* Chat Header */}
-              <div className="p-4 border-b border-border">
+              <div className="p-4 border-b border-border flex-shrink-0">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-sm font-medium">
@@ -463,15 +490,32 @@ function ChatContent() {
                       <p className="text-sm text-muted-foreground">{selectedConversation.lastSeen}</p>
                     </div>
                   </div>
-                  <GhostBadge 
-                    score={selectedConversation.ghostScore} 
-                    showPulse={selectedConversation.ghostScore > 80}
-                  />
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">AI Help</span>
+                      <button
+                        onClick={() => setAiAssistanceEnabled(!aiAssistanceEnabled)}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                          aiAssistanceEnabled ? 'bg-primary' : 'bg-gray-200'
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            aiAssistanceEnabled ? 'translate-x-6' : 'translate-x-1'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                    <GhostBadge 
+                      score={selectedConversation.ghostScore} 
+                      showPulse={selectedConversation.ghostScore > 80}
+                    />
+                  </div>
                 </div>
               </div>
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-1">
+              <div className="flex-1 overflow-y-auto p-4 space-y-1 min-h-0" ref={messagesEndRef}>
                 <AnimatePresence>
                   {selectedConversation.messages.map((message: any) => (
                     <MessageBubble
@@ -486,9 +530,9 @@ function ChatContent() {
               </div>
 
               {/* Message Composer */}
-              <div className="p-4 border-t border-border">
+              <div className="p-4 border-t border-border flex-shrink-0">
                 <AnimatePresence>
-                  {showSuggestions && suggestions.length > 0 && (
+                  {aiAssistanceEnabled && showSuggestions && suggestions.length > 0 && (
                     <DraftCoachBanner
                       suggestions={suggestions}
                       onSelectSuggestion={handleSelectSuggestion}
@@ -498,7 +542,7 @@ function ChatContent() {
 
                 {/* Autofill Suggestions */}
                 <AnimatePresence>
-                  {showAutofill && autofillSuggestions.length > 0 && !showSuggestions && (
+                  {aiAssistanceEnabled && showAutofill && autofillSuggestions.length > 0 && !showSuggestions && (
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -546,7 +590,7 @@ function ChatContent() {
                         }
                       }}
                     />
-                    {dryness.score >= 0.6 && draft.trim() && (
+                    {aiAssistanceEnabled && dryness.score >= 0.6 && draft.trim() && (
                       <div className="absolute -top-8 left-0 text-xs text-amber-400 font-medium">
                         {dryness.label} ({Math.round(dryness.score * 100)}%)
                       </div>
@@ -558,7 +602,7 @@ function ChatContent() {
                     className="px-4 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed relative"
                   >
                     <Send className="w-4 h-4" />
-                    {autofillSuggestions.length > 0 && (
+                    {aiAssistanceEnabled && autofillSuggestions.length > 0 && (
                       <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full"></div>
                     )}
                   </button>
@@ -599,16 +643,18 @@ function ChatContent() {
         </div>
 
         {/* Right Panel - AI Sidekick */}
-        <div className="hidden xl:block w-96 border-l border-border">
-          <div className="h-full overflow-y-auto">
-            <AIBox
-              currentDraft={draft}
-              lastMessages={selectedConversation?.messages.slice(-3).map((m: any) => m.text) || []}
-              metrics={selectedConversation?.metrics || { daysSinceReply: 0, responseRate: 0, averageDryness: 0, ghostScoreTrend: 0 }}
-              className="h-full"
-            />
+        {aiAssistanceEnabled && (
+          <div className="hidden xl:block w-96 border-l border-border overflow-hidden">
+            <div className="h-full overflow-y-auto">
+              <AIBox
+                currentDraft={draft}
+                lastMessages={selectedConversation?.messages.slice(-3).map((m: any) => m.text) || []}
+                metrics={selectedConversation?.metrics || { daysSinceReply: 0, responseRate: 0, averageDryness: 0, ghostScoreTrend: 0 }}
+                className="h-full"
+              />
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
