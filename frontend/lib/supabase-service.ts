@@ -52,6 +52,60 @@ export class SupabaseDatabaseService implements DatabaseService {
     return data;
   }
 
+  async ensureUserExists(userId: string, userData?: Partial<User>): Promise<User> {
+    // First try to get the user
+    let user = await this.getUser(userId);
+    
+    if (user) {
+      return user;
+    }
+
+    // If user doesn't exist, create them
+    const defaultUserData: User = {
+      id: userId,
+      profile: {
+        name: userData?.profile?.name || 'User',
+        alias: userData?.profile?.alias || 'user',
+        avatar: userData?.profile?.avatar || '',
+        bio: userData?.profile?.bio || '',
+        timezone: userData?.profile?.timezone || 'UTC',
+        language: userData?.profile?.language || 'en'
+      },
+      preferences: {
+        responseTime: userData?.preferences?.responseTime || 'flexible',
+        communicationStyle: userData?.preferences?.communicationStyle || 'casual',
+        preferredTopics: userData?.preferences?.preferredTopics || [],
+        avoidTopics: userData?.preferences?.avoidTopics || [],
+        ghostingTolerance: userData?.preferences?.ghostingTolerance || 0.5
+      },
+      analytics: {
+        averageResponseTime: userData?.analytics?.averageResponseTime || 0,
+        responseRate: userData?.analytics?.responseRate || 1.0,
+        messageFrequency: userData?.analytics?.messageFrequency || 'medium',
+        engagementScore: userData?.analytics?.engagementScore || 0.5,
+        lastActiveAt: new Date().toISOString()
+      },
+      relationship: {
+        closeness: userData?.relationship?.closeness || 'stranger',
+        metIn: userData?.relationship?.metIn || 'online',
+        sharedInterests: userData?.relationship?.sharedInterests || [],
+        mutualConnections: userData?.relationship?.mutualConnections || []
+      }
+    };
+
+    const { data, error } = await this.supabase
+      .from('users')
+      .insert(defaultUserData)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to create user: ${error.message}`);
+    }
+
+    return data;
+  }
+
   async searchUsers(query: string): Promise<User[]> {
     const { data, error } = await this.supabase
       .from('users')
