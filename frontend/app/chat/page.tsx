@@ -38,7 +38,12 @@ function ChatContent() {
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [aiAssistanceEnabled, setAiAssistanceEnabled] = useState(true);
+  const [newMessageIndicator, setNewMessageIndicator] = useState(false);
+  const [lastMessageCount, setLastMessageCount] = useState(0);
+  const [newMessages, setNewMessages] = useState<any[]>([]);
+  const [isNewMessageArriving, setIsNewMessageArriving] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const selectedConversation = selectedConversationId 
     ? conversations.find(c => c.id === selectedConversationId) 
@@ -144,6 +149,122 @@ function ChatContent() {
     }
   };
 
+  // Function to refresh conversations (for real-time updates)
+  const refreshConversations = async (showIndicator = false) => {
+    if (!user?.id) return;
+
+    try {
+      // Fetch all conversations from Supabase (no user filter)
+      const supabaseConversations = await supabaseDatabase.getConversations();
+      const legacyConversations: any[] = [];
+
+      for (const conversation of supabaseConversations) {
+        // Get the first participant as the "other user" for display purposes
+        const otherUserId = conversation.participants[0];
+        if (otherUserId) {
+          const [otherUser, messages] = await Promise.all([
+            supabaseDatabase.getUser(otherUserId),
+            supabaseDatabase.getMessages({ conversationId: conversation.id })
+          ]);
+          
+          if (otherUser) {
+            // Convert to legacy format
+            const lastMessage = messages[messages.length - 1];
+            const isActive = otherUser.analytics.lastActiveAt && 
+              new Date(otherUser.analytics.lastActiveAt) > new Date(Date.now() - 24 * 60 * 60 * 1000);
+            
+            // Calculate delivered time for this conversation
+            const deliveredTime = calculateDeliveredTime(
+              messages.map(msg => ({
+                id: msg.id,
+                text: msg.content.text,
+                sender: msg.senderId === user.id ? 'me' : 'them',
+                timestamp: msg.timestamp,
+                quality: msg.analysis.quality === 'engaging' ? 'playful' : msg.analysis.quality
+              })), 
+              user.id
+            );
+            
+            legacyConversations.push({
+              id: conversation.id,
+              participants: conversation.participants, // Preserve participants field
+              name: otherUser.profile.name,
+              alias: otherUser.profile.alias,
+              avatar: otherUser.profile.avatar,
+              ghostScore: conversation.metrics.ghostScore,
+              lastMessage: lastMessage?.content.text || '',
+              lastSeen: formatLastSeen(otherUser.analytics.lastActiveAt),
+              isActive,
+              isRisky: conversation.metrics.conversationHealth === 'critical' || conversation.metrics.conversationHealth === 'at_risk',
+              deliveredTime, // Add delivered time tracking
+              messages: messages.map(msg => ({
+                id: msg.id,
+                text: msg.content.text,
+                sender: msg.senderId === user.id ? 'me' : 'them', // Show messages from current user as 'me'
+                timestamp: msg.timestamp,
+                quality: msg.analysis.quality === 'engaging' ? 'playful' : msg.analysis.quality
+              })),
+              metrics: {
+                daysSinceReply: conversation.metrics.daysSinceLastReply,
+                responseRate: conversation.metrics.responseRate,
+                averageDryness: conversation.metrics.averageDryness,
+                ghostScoreTrend: 0
+              }
+            });
+          }
+        }
+      }
+
+      // Check if there are new messages and handle smooth appearance
+      if (showIndicator && selectedConversationId) {
+        const currentConversation = legacyConversations.find(c => c.id === selectedConversationId);
+        if (currentConversation && currentConversation.messages.length > lastMessageCount) {
+          // Get the new messages that just arrived
+          const newMessagesArrived = currentConversation.messages.slice(lastMessageCount);
+          
+          // Only show animation for messages from "them" (incoming messages)
+          const incomingNewMessages = newMessagesArrived.filter((msg: any) => msg.sender === 'them');
+          
+          if (incomingNewMessages.length > 0) {
+            setIsNewMessageArriving(true);
+            setNewMessages(incomingNewMessages);
+            
+            // Show the new message indicator
+            setNewMessageIndicator(true);
+            
+            // Play subtle notification sound (if supported)
+            try {
+              const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT');
+              audio.volume = 0.3;
+              audio.play().catch(() => {}); // Ignore errors if audio is blocked
+            } catch (e) {
+              // Ignore audio errors
+            }
+            
+            // Auto-scroll to bottom when new message arrives
+            setTimeout(() => {
+              scrollToBottom();
+            }, 200);
+            
+            // Clear the new message state after animation
+            setTimeout(() => {
+              setIsNewMessageArriving(false);
+              setNewMessages([]);
+            }, 1000);
+            
+            // Auto-hide indicator after 3 seconds
+            setTimeout(() => setNewMessageIndicator(false), 3000);
+          }
+        }
+      }
+
+      setConversations(legacyConversations);
+      setLastMessageCount(selectedConversation?.messages?.length || 0);
+    } catch (error) {
+      console.error('Error refreshing conversations:', error);
+    }
+  };
+
   // Load conversations from Supabase after user is authenticated
   useEffect(() => {
     if (!user?.id) return; // Don't load conversations until user is authenticated
@@ -151,69 +272,7 @@ function ChatContent() {
     const loadConversations = async () => {
       try {
         setLoading(true);
-        
-        // Fetch all conversations from Supabase (no user filter)
-        const supabaseConversations = await supabaseDatabase.getConversations();
-        const legacyConversations: any[] = [];
-
-        for (const conversation of supabaseConversations) {
-          // Get the first participant as the "other user" for display purposes
-          const otherUserId = conversation.participants[0];
-          if (otherUserId) {
-            const [otherUser, messages] = await Promise.all([
-              supabaseDatabase.getUser(otherUserId),
-              supabaseDatabase.getMessages({ conversationId: conversation.id })
-            ]);
-            
-            if (otherUser) {
-              // Convert to legacy format
-              const lastMessage = messages[messages.length - 1];
-              const isActive = otherUser.analytics.lastActiveAt && 
-                new Date(otherUser.analytics.lastActiveAt) > new Date(Date.now() - 24 * 60 * 60 * 1000);
-              
-              // Calculate delivered time for this conversation
-              const deliveredTime = calculateDeliveredTime(
-                messages.map(msg => ({
-                  id: msg.id,
-                  text: msg.content.text,
-                  sender: msg.senderId === user.id ? 'me' : 'them',
-                  timestamp: msg.timestamp,
-                  quality: msg.analysis.quality === 'engaging' ? 'playful' : msg.analysis.quality
-                })), 
-                user.id
-              );
-              
-              legacyConversations.push({
-                id: conversation.id,
-                participants: conversation.participants, // Preserve participants field
-                name: otherUser.profile.name,
-                alias: otherUser.profile.alias,
-                avatar: otherUser.profile.avatar,
-                ghostScore: conversation.metrics.ghostScore,
-                lastMessage: lastMessage?.content.text || '',
-                lastSeen: formatLastSeen(otherUser.analytics.lastActiveAt),
-                isActive,
-                isRisky: conversation.metrics.conversationHealth === 'critical' || conversation.metrics.conversationHealth === 'at_risk',
-                deliveredTime, // Add delivered time tracking
-                messages: messages.map(msg => ({
-                  id: msg.id,
-                  text: msg.content.text,
-                  sender: msg.senderId === user.id ? 'me' : 'them', // Show messages from current user as 'me'
-                  timestamp: msg.timestamp,
-                  quality: msg.analysis.quality === 'engaging' ? 'playful' : msg.analysis.quality
-                })),
-                metrics: {
-                  daysSinceReply: conversation.metrics.daysSinceLastReply,
-                  responseRate: conversation.metrics.responseRate,
-                  averageDryness: conversation.metrics.averageDryness,
-                  ghostScoreTrend: 0
-                }
-              });
-            }
-          }
-        }
-
-        setConversations(legacyConversations);
+        await refreshConversations();
       } catch (error) {
         console.error('Error loading conversations:', error);
         toast.error('Failed to load conversations');
@@ -223,6 +282,18 @@ function ChatContent() {
     };
 
     loadConversations();
+
+    // Set up real-time polling for new messages (every 3 seconds)
+    refreshIntervalRef.current = setInterval(() => {
+      refreshConversations(true); // Show indicator for new messages
+    }, 3000);
+
+    // Cleanup interval on unmount
+    return () => {
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+      }
+    };
   }, [user?.id]); // Depend on user.id so it reloads when user changes
 
   // Handle query parameter for auto-selecting conversation
@@ -336,68 +407,8 @@ function ChatContent() {
       // Scroll to bottom after sending message
       setTimeout(() => scrollToBottom(), 100);
       
-      // Refresh the entire conversation list to get updated data
-      const supabaseConversations = await supabaseDatabase.getConversations();
-      const legacyConversations: any[] = [];
-
-      for (const conversation of supabaseConversations) {
-        // Get the first participant as the "other user" for display purposes
-        const otherUserId = conversation.participants[0];
-        if (otherUserId) {
-          const [otherUser, messages] = await Promise.all([
-            supabaseDatabase.getUser(otherUserId),
-            supabaseDatabase.getMessages({ conversationId: conversation.id })
-          ]);
-          
-          if (otherUser) {
-            // Convert to legacy format
-            const lastMessage = messages[messages.length - 1];
-            const isActive = otherUser.analytics.lastActiveAt && 
-              new Date(otherUser.analytics.lastActiveAt) > new Date(Date.now() - 24 * 60 * 60 * 1000);
-            
-            // Calculate delivered time for this conversation
-            const deliveredTime = calculateDeliveredTime(
-              messages.map(msg => ({
-                id: msg.id,
-                text: msg.content.text,
-                sender: msg.senderId === user.id ? 'me' : 'them',
-                timestamp: msg.timestamp,
-                quality: msg.analysis.quality === 'engaging' ? 'playful' : msg.analysis.quality
-              })), 
-              user.id
-            );
-            
-            legacyConversations.push({
-              id: conversation.id,
-              participants: conversation.participants, // Preserve participants field
-              name: otherUser.profile.name,
-              alias: otherUser.profile.alias,
-              avatar: otherUser.profile.avatar,
-              ghostScore: conversation.metrics.ghostScore,
-              lastMessage: lastMessage?.content.text || '',
-              lastSeen: formatLastSeen(otherUser.analytics.lastActiveAt),
-              isActive,
-              isRisky: conversation.metrics.conversationHealth === 'critical' || conversation.metrics.conversationHealth === 'at_risk',
-              deliveredTime, // Add delivered time tracking
-              messages: messages.map(msg => ({
-                id: msg.id,
-                text: msg.content.text,
-                sender: msg.senderId === user.id ? 'me' : 'them',
-                timestamp: msg.timestamp,
-                quality: msg.analysis.quality === 'engaging' ? 'playful' : msg.analysis.quality
-              })),
-              metrics: {
-                daysSinceReply: conversation.metrics.daysSinceLastReply,
-                responseRate: conversation.metrics.responseRate,
-                averageDryness: conversation.metrics.averageDryness,
-                ghostScoreTrend: 0
-              }
-            });
-          }
-        }
-      }
-
-      setConversations(legacyConversations);
+      // Refresh conversations to show the new message
+      await refreshConversations();
       
       // Refresh autofill suggestions
       const newSuggestions = await supabaseDatabase.generateSuggestions(selectedConversation.id, '');
@@ -517,20 +528,34 @@ function ChatContent() {
             ) : (
               <div className="p-2 space-y-1">
                 {filteredConversations.map((conversation) => (
-                  <motion.button
-                    key={conversation.id}
-                    onClick={() => handleConversationSelect(conversation.id)}
-                    className={`w-full p-4 rounded-xl hover:bg-gradient-to-r hover:from-muted/30 hover:to-muted/20 transition-all duration-200 text-left group ${
-                      selectedConversationId === conversation.id 
-                        ? 'bg-gradient-to-r from-primary/15 to-primary/10 border-2 border-primary/30 shadow-lg' 
-                        : 'border border-transparent hover:border-border/50 hover:shadow-md'
-                    }`}
-                    whileHover={{ scale: 1.02, y: -2 }}
-                    whileTap={{ scale: 0.98 }}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
+        <motion.button
+          key={conversation.id}
+          onClick={() => handleConversationSelect(conversation.id)}
+          className={`w-full p-4 rounded-xl hover:bg-gradient-to-r hover:from-muted/30 hover:to-muted/20 transition-all duration-200 text-left group ${
+            selectedConversationId === conversation.id 
+              ? 'bg-gradient-to-r from-primary/15 to-primary/10 border-2 border-primary/30 shadow-lg' 
+              : 'border border-transparent hover:border-border/50 hover:shadow-md'
+          } ${
+            conversation.messages && conversation.messages.length > 0 && 
+            conversation.messages[conversation.messages.length - 1]?.sender === 'them'
+              ? 'ring-2 ring-blue-500/20 bg-gradient-to-r from-blue-500/5 to-primary/5'
+              : ''
+          }`}
+          whileHover={{ scale: 1.02, y: -2 }}
+          whileTap={{ scale: 0.98 }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ 
+            opacity: 1, 
+            y: 0,
+            scale: conversation.messages && conversation.messages.length > 0 && 
+                   conversation.messages[conversation.messages.length - 1]?.sender === 'them' 
+                   ? [1, 1.01, 1] : 1
+          }}
+          transition={{ 
+            duration: 0.2,
+            scale: { duration: 2, repeat: Infinity, ease: "easeInOut" }
+          }}
+        >
                     <div className="flex items-center gap-4">
                       {/* Avatar with fun styling */}
                       <div className="relative">
@@ -558,6 +583,15 @@ function ChatContent() {
                           <span className="font-semibold text-base truncate group-hover:text-primary transition-colors">
                             {conversation.name}
                           </span>
+                          {/* New message indicator - subtle blue dot */}
+                          {conversation.messages && conversation.messages.length > 0 && 
+                           conversation.messages[conversation.messages.length - 1]?.sender === 'them' && (
+                            <motion.div
+                              className="w-2 h-2 bg-blue-500 rounded-full"
+                              animate={{ scale: [1, 1.3, 1] }}
+                              transition={{ duration: 1, repeat: Infinity }}
+                            />
+                          )}
                           {conversation.deliveredTime && conversation.deliveredTime.totalDays >= 7 && (
                             <motion.span 
                               className="text-lg"
@@ -684,6 +718,41 @@ function ChatContent() {
                 </div>
               </div>
 
+              {/* New Message Indicator */}
+              <AnimatePresence>
+                {newMessageIndicator && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -20, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                    className="bg-gradient-to-r from-primary/10 to-blue-500/10 border border-primary/30 rounded-lg mx-4 mb-2 p-3 shadow-sm"
+                  >
+                    <div className="flex items-center gap-3 text-primary text-sm">
+                      <motion.div
+                        animate={{ 
+                          scale: [1, 1.3, 1],
+                          rotate: [0, 5, -5, 0]
+                        }}
+                        transition={{ 
+                          duration: 0.8, 
+                          repeat: Infinity,
+                          ease: "easeInOut"
+                        }}
+                        className="w-3 h-3 bg-gradient-to-r from-primary to-blue-500 rounded-full"
+                      />
+                      <span className="font-medium">New message from {selectedConversation?.name}</span>
+                      <motion.span
+                        animate={{ opacity: [0.5, 1, 0.5] }}
+                        transition={{ duration: 1, repeat: Infinity }}
+                        className="text-xs"
+                      >
+                        ✨
+                      </motion.span>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               {/* Messages */}
               <div className="flex-1 overflow-y-auto p-4 space-y-0 min-h-0" ref={messagesEndRef}>
                 <AnimatePresence>
@@ -695,6 +764,28 @@ function ChatContent() {
                       timestamp={message.timestamp}
                       showTimestamp={shouldShowTimestamp(index, selectedConversation.messages)}
                     />
+                  ))}
+                  
+                  {/* New incoming messages with smooth animation */}
+                  {isNewMessageArriving && newMessages.map((message: any, index: number) => (
+                    <motion.div
+                      key={`new-${message.id}-${index}`}
+                      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ 
+                        duration: 0.4, 
+                        delay: index * 0.1,
+                        ease: "easeOut"
+                      }}
+                      className="mb-2"
+                    >
+                      <MessageBubble
+                        text={message.text}
+                        sender={message.sender}
+                        timestamp={message.timestamp}
+                        showTimestamp={true}
+                      />
+                    </motion.div>
                   ))}
                 </AnimatePresence>
               </div>
