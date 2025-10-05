@@ -96,6 +96,7 @@ export async function POST(request: NextRequest) {
     }
     
     console.log('✅ Invite created successfully');
+    console.log('🎫 Final invite data:', inviteData);
 
     // generate invite link - detect current URL from request
     const forwardedHost = request.headers.get('x-forwarded-host');

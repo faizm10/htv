@@ -113,8 +113,8 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
         token,
         error
       });
-      // fallback to success page
-      router.push('/auth/sign-up-success');
+      // fallback to login page
+      router.push('/auth/login');
     }
   }
 
@@ -185,12 +185,12 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
             await handleInviteAcceptance(data.user!.id, inviteToken);
           } catch (inviteError) {
             console.error('Error handling invite after signup:', inviteError);
-            // still redirect to success page even if invite handling fails
-            router.push('/auth/sign-up-success');
+            // still redirect to login page even if invite handling fails
+            router.push('/auth/login');
           }
         }, 2000);
       } else {
-        router.push('/auth/sign-up-success');
+        router.push('/auth/login');
       }
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : 'An error occurred')

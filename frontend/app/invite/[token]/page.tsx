@@ -46,15 +46,30 @@ export default function InvitePage({ params }: InvitePageProps) {
 
   const checkInvite = async () => {
     try {
-      console.log('Checking invite for token:', resolvedParams.token);
+      console.log('🔍 DEBUGGING INVITE CHECK');
+      console.log('Token received:', resolvedParams.token);
+      console.log('Token type:', typeof resolvedParams.token);
+      console.log('Token length:', resolvedParams.token?.length);
       
+      if (!resolvedParams.token) {
+        setError('No invite token provided');
+        return;
+      }
+      
+      console.log('📋 Querying chat_invites table...');
       const { data, error } = await supabase
         .from('chat_invites')
         .select('*')
         .eq('id', resolvedParams.token)
         .single();
 
-      console.log('Invite query result:', { data, error });
+      console.log('📋 Raw query result:', { data, error });
+      console.log('📋 Error details:', {
+        code: error?.code,
+        message: error?.message,
+        details: error?.details,
+        hint: error?.hint
+      });
 
       if (error) {
         console.error('Database error:', error);
@@ -175,6 +190,9 @@ export default function InvitePage({ params }: InvitePageProps) {
             <div className="flex items-center justify-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
               <span>Loading invite...</span>
+            </div>
+            <div className="mt-4 text-xs text-muted-foreground text-center">
+              Token: {resolvedParams.token}
             </div>
           </CardContent>
         </Card>
