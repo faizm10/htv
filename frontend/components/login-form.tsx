@@ -13,15 +13,109 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useState, useEffect } from 'react'
 
 export function LoginForm({ className, ...props }: React.ComponentPropsWithoutRef<'div'>) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [inviteToken, setInviteToken] = useState<string | null>(null)
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    const invite = searchParams.get('invite')
+    if (invite) {
+      setInviteToken(invite)
+    }
+  }, [searchParams])
+
+  const handleInviteAcceptance = async (userId: string, token: string) => {
+    try {
+      console.log('🎫 Starting invite acceptance:', { userId, token });
+      const supabase = createClient();
+      
+      // get invite details
+      console.log('📋 Fetching invite details...');
+      const { data: invite, error: inviteError } = await supabase
+        .from('chat_invites')
+        .select('*')
+        .eq('id', token)
+        .single();
+
+      console.log('📋 Invite query result:', { invite, inviteError });
+
+      if (inviteError || !invite) {
+        console.error('❌ Invalid invite:', inviteError);
+        throw new Error(`Invalid invite: ${inviteError?.message || 'Not found'}`);
+      }
+
+      // create conversation between users
+      console.log('💬 Creating conversation...');
+      const conversationData = {
+        participants: [userId, invite.created_by],
+        metadata: {
+          title: `Chat with ${invite.created_by}`,
+          created_via: 'invite',
+          type: 'direct',
+          status: 'active'
+        },
+        context: {},
+        metrics: {},
+        settings: {}
+      };
+      
+      console.log('💬 Conversation data:', conversationData);
+      
+      const { data: conversation, error: convError } = await supabase
+        .from('conversations')
+        .insert(conversationData)
+        .select()
+        .single();
+
+      console.log('💬 Conversation result:', { conversation, convError });
+
+      if (convError) {
+        console.error('❌ Failed to create conversation:', convError);
+        throw new Error(`Failed to create conversation: ${convError.message}`);
+      }
+
+      // mark invite as used
+      console.log('✅ Marking invite as used...');
+      const { error: updateError } = await supabase
+        .from('chat_invites')
+        .update({
+          used: true,
+          used_by: userId,
+          used_at: new Date().toISOString(),
+          conversation_id: conversation.id
+        })
+        .eq('id', token);
+
+      if (updateError) {
+        console.error('❌ Failed to update invite:', updateError);
+        // Don't throw here, conversation was created successfully
+      }
+
+      console.log('🚀 Redirecting to conversation:', conversation.id);
+      // redirect to the new conversation
+      router.push(`/chat?conversation=${conversation.id}`);
+
+    } catch (error) {
+      console.error('Error accepting invite:', error);
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        userId,
+        token,
+        error
+      });
+      // fallback to chat page
+      router.push('/chat');
+    }
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -30,13 +124,19 @@ export function LoginForm({ className, ...props }: React.ComponentPropsWithoutRe
     setError(null)
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
       if (error) throw error
-      // Redirect to chat page after successful login
-      router.push('/chat')
+      
+      // if we have an invite token, handle it after login
+      if (data.user && inviteToken) {
+        await handleInviteAcceptance(data.user.id, inviteToken);
+      } else {
+        // Redirect to chat page after successful login
+        router.push('/chat')
+      }
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : 'An error occurred')
     } finally {

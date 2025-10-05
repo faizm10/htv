@@ -8,6 +8,7 @@ import { MessageBubble } from '@/components/ui/message-bubble';
 import { DraftCoachBanner } from '@/components/ui/draft-coach-banner';
 import { AIBox } from '@/components/ui/ai-box';
 import { TopBar } from '@/components/ui/top-bar';
+import { InviteGenerator } from '@/components/invite-generator';
 import { useDatabaseData, getAutofillSuggestions } from '@/lib/use-database-data';
 import { supabaseDatabase } from '@/lib/supabase-service';
 import { useDryness } from '@/lib/use-dryness';
@@ -843,20 +844,25 @@ function ChatContent() {
             </>
           ) : (
             /* Empty State */
-            <div className="flex-1 flex items-center justify-center">
+            <div className="flex-1 flex items-center justify-center p-8">
               <motion.div
-                className="text-center"
+                className="text-center max-w-md w-full space-y-8"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
               >
-                <Ghost className="w-24 h-24 mx-auto mb-6 text-primary/50" />
-                <h2 className="text-2xl font-semibold mb-2">Select a conversation</h2>
-                <p className="text-muted-foreground mb-6">
-                  Choose a chat from the sidebar to start managing your ghosting risks
-                </p>
-                  
+                <div>
+                  <Ghost className="w-24 h-24 mx-auto mb-6 text-primary/50" />
+                  <h2 className="text-2xl font-semibold mb-2">Select a conversation</h2>
+                  <p className="text-muted-foreground mb-6">
+                    Choose a chat from the sidebar to start managing your ghosting risks
+                  </p>
+                </div>
                 
+                <div className="border-t border-border pt-8">
+                  <h3 className="text-lg font-medium mb-4">Or invite someone new</h3>
+                  <InviteGenerator />
+                </div>
               </motion.div>
             </div>
           )}
