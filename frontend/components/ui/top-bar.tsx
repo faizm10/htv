@@ -6,6 +6,7 @@ import { Search, Settings, Eye, EyeOff, Ghost, User, LogOut } from 'lucide-react
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
+import { ProfilePopover } from './profile-popover';
 
 interface TopBarProps {
   onSearch: (query: string) => void;
@@ -18,6 +19,7 @@ export function TopBar({ onSearch, className, user }: TopBarProps) {
   const [redactMode, setRedactMode] = useState(false);
   const [ghostHoverTime, setGhostHoverTime] = useState(0);
   const [showGhost, setShowGhost] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -124,10 +126,21 @@ export function TopBar({ onSearch, className, user }: TopBarProps) {
         )}
 
         {/* Settings */}
-        <button className="p-2 text-muted-foreground hover:text-foreground transition-colors">
+        <button 
+          onClick={() => setShowProfile(true)}
+          className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+          title="Profile & Settings"
+        >
           <Settings className="w-4 h-4" />
         </button>
       </div>
+
+      {/* Profile Popover */}
+      <ProfilePopover 
+        isOpen={showProfile}
+        onClose={() => setShowProfile(false)}
+        user={user}
+      />
     </div>
   );
 }
