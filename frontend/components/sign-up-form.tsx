@@ -150,7 +150,7 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
             await supabase
               .from('users')
               .insert({
-                id: data.user.id,
+                id: data.user!.id,
                 profile: {
                   name: email.split('@')[0],
                   alias: email.split('@')[0],
@@ -182,7 +182,7 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
               });
 
             // handle the invite acceptance
-            await handleInviteAcceptance(data.user.id, inviteToken);
+            await handleInviteAcceptance(data.user!.id, inviteToken);
           } catch (inviteError) {
             console.error('Error handling invite after signup:', inviteError);
             // still redirect to success page even if invite handling fails
