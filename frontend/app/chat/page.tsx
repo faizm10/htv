@@ -612,9 +612,9 @@ function ChatContent() {
                         {/* Status indicators with fun styling */}
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-full">
+                            {/* <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-full">
                               {conversation.lastSeen}
-                            </span>
+                            </span> */}
                             {conversation.deliveredTime && (
                               <motion.span 
                                 className={`text-xs font-semibold px-2 py-1 rounded-full ${getDeliveredTimeColor(conversation.deliveredTime)} bg-current/10`}
