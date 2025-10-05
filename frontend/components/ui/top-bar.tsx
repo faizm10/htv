@@ -33,7 +33,7 @@ export function TopBar({ onSearch, className, user }: TopBarProps) {
 
   useEffect(() => {
     // Load redact mode from localStorage
-    const saved = localStorage.getItem('ghostwing-redact-mode');
+    const saved = localStorage.getItem('dryness-eliminator-redact-mode');
     if (saved) {
       setRedactMode(JSON.parse(saved));
     }
@@ -42,7 +42,7 @@ export function TopBar({ onSearch, className, user }: TopBarProps) {
   const handleRedactToggle = () => {
     const newMode = !redactMode;
     setRedactMode(newMode);
-    localStorage.setItem('ghostwing-redact-mode', JSON.stringify(newMode));
+    localStorage.setItem('dryness-eliminator-redact-mode', JSON.stringify(newMode));
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -67,7 +67,7 @@ export function TopBar({ onSearch, className, user }: TopBarProps) {
           whileHover={{ scale: 1.02 }}
         >
           <Ghost className="w-6 h-6 text-primary" />
-          <h1 className="text-xl font-bold">GhostWing</h1>
+          <h1 className="text-xl font-bold">The Dryness Eliminator™</h1>
           {showGhost && (
             <motion.div
               className="absolute left-0 top-0 w-full h-full pointer-events-none"

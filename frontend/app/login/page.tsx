@@ -27,7 +27,7 @@ export default function LoginPage() {
           >
             <Ghost className="w-8 h-8 text-primary" />
           </motion.div>
-          <h1 className="text-2xl font-bold mb-2">Welcome to GhostWing</h1>
+          <h1 className="text-2xl font-bold mb-2">Welcome to The Dryness Eliminator™</h1>
           <p className="text-muted-foreground">
             Your AI wingman for ghosting and dry chats
           </p>

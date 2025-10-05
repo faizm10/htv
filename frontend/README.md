@@ -1,10 +1,10 @@
-# GhostWing 👻
+# The Dryness Eliminator™ 👻
 
 Your AI wingman for ghosting and dry chats. A spooky-playful SaaS that keeps conversations alive with crisp typography, subtle neon glows, micro-roasts, and buttery animations.
 
 ## 🎬 60-Second Demo Script
 
-1. **"This is GhostWing — an AI wingman for ghosting/dry chats."**
+1. **"This is The Dryness Eliminator™ — an AI wingman for ghosting/dry chats."**
 2. Open "Jamie" → **GhostBadge 92** (hard haunt) + "63 days since reply."
 3. Type "hey" → **Dryness banner** pops → choose playful chip → send.
 4. Open **Alex → Analyze** → generate 3 options → send one. *(Confetti as score drops)*
@@ -40,7 +40,7 @@ Your AI wingman for ghosting and dry chats. A spooky-playful SaaS that keeps con
 - **Conversation Management**: Track and manage multiple chats
 
 ### UI/UX Highlights
-- **Dark-first theme** with custom GhostWing color palette
+- **Dark-first theme** with custom The Dryness Eliminator™ color palette
 - **Framer Motion animations** for smooth interactions
 - **Responsive 3-column layout** (conversations, chat, Alex)
 - **Accessibility features** with keyboard shortcuts and ARIA labels
@@ -142,4 +142,4 @@ MIT License - feel free to use this for your own projects!
 
 ---
 
-**Built with 👻 by the GhostWing team**
+**Built with 👻 by The Dryness Eliminator™ team**

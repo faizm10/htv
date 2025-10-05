@@ -47,7 +47,7 @@
 :root {
   --radius: 0.625rem;
   
-  /* GhostWing Dark Theme */
+  /* The Dryness Eliminator™ Dark Theme */
   --background: #0b0f17;
   --foreground: #E6EDF3;
   --card: #121827;
@@ -67,7 +67,7 @@
   --input: rgba(255, 255, 255, 0.15);
   --ring: #9b8cff;
   
-  /* GhostWing Custom Colors */
+  /* The Dryness Eliminator™ Custom Colors */
   --ghost-bg: #0b0f17;
   --ghost-panel: #121827;
   --ghost-ink: #E6EDF3;
@@ -93,7 +93,7 @@
   --sidebar-ring: #9b8cff;
 }
 
-/* GhostWing is dark-first, so no separate dark theme needed */
+/* The Dryness Eliminator™ is dark-first, so no separate dark theme needed */
 
 @layer base {
   * {

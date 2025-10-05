@@ -23,7 +23,7 @@ export default function LandingPage() {
           transition={{ duration: 0.5 }}
         >
           <Ghost className="w-8 h-8 text-purple-400" />
-          <span className="text-2xl font-bold text-white">GhostWing</span>
+          <span className="text-2xl font-bold text-white">The Dryness Eliminator™</span>
         </motion.div>
         
         <motion.div
