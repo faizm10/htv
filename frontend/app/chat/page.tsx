@@ -336,14 +336,14 @@ function ChatContent() {
     }
   });
 
-  useEffect(() => {
-    // Show suggestions when draft is dry (only if AI assistance is enabled)
-    if (aiAssistanceEnabled && dryness.score >= 0.6 && draft.trim()) {
-      setShowSuggestions(true);
-    } else {
-      setShowSuggestions(false);
-    }
-  }, [dryness.score, draft, aiAssistanceEnabled]);
+  // useEffect(() => {
+  //   // Show suggestions when draft is dry (only if AI assistance is enabled)
+  //   if (aiAssistanceEnabled && dryness.score >= 0.6 && draft.trim()) {
+  //     setShowSuggestions(true);
+  //   } else {
+  //     setShowSuggestions(false);
+  //   }
+  // }, [dryness.score, draft, aiAssistanceEnabled]);
 
   const handleSendMessage = async () => {
     if (!draft.trim() || !selectedConversation) {
@@ -822,11 +822,11 @@ function ChatContent() {
                         }
                       }}
                     />
-                    {aiAssistanceEnabled && dryness.score >= 0.6 && draft.trim() && (
+                    {/* {aiAssistanceEnabled && dryness.score >= 0.6 && draft.trim() && (
                       <div className="absolute -top-8 left-0 text-xs text-amber-400 font-medium">
                         {dryness.label} ({Math.round(dryness.score * 100)}%)
                       </div>
-                    )}
+                    )} */}
                   </div>
                   <button
                     onClick={handleSendMessage}
