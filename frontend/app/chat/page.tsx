@@ -515,15 +515,15 @@ function ChatContent() {
               </div>
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-1 min-h-0" ref={messagesEndRef}>
+              <div className="flex-1 overflow-y-auto p-4 space-y-0 min-h-0" ref={messagesEndRef}>
                 <AnimatePresence>
-                  {selectedConversation.messages.map((message: any) => (
+                  {selectedConversation.messages.map((message: any, index: number) => (
                     <MessageBubble
                       key={message.id}
                       text={message.text}
                       sender={message.sender}
                       timestamp={message.timestamp}
-                      quality={message.quality}
+                      showTimestamp={shouldShowTimestamp(index, selectedConversation.messages)}
                     />
                   ))}
                 </AnimatePresence>
@@ -629,6 +629,18 @@ function ChatContent() {
       </div>
     </div>
   );
+}
+
+// Helper function to determine if timestamp should be shown
+function shouldShowTimestamp(messageIndex: number, messages: any[]): boolean {
+  if (messageIndex === 0) return true; // Always show for first message
+  
+  const currentMessage = new Date(messages[messageIndex].timestamp);
+  const previousMessage = new Date(messages[messageIndex - 1].timestamp);
+  const diffMs = currentMessage.getTime() - previousMessage.getTime();
+  const diffHours = diffMs / (1000 * 60 * 60);
+  
+  return diffHours >= 1; // Show if more than 1 hour apart
 }
 
 // Helper functions for message analysis

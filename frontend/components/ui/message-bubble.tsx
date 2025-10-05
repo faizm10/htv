@@ -7,53 +7,54 @@ interface MessageBubbleProps {
   text: string;
   sender: 'me' | 'them';
   timestamp: string;
-  quality: 'dry' | 'neutral' | 'playful';
+  showTimestamp?: boolean;
   className?: string;
 }
 
-export function MessageBubble({ text, sender, timestamp, quality, className }: MessageBubbleProps) {
+export function MessageBubble({ text, sender, timestamp, showTimestamp = true, className }: MessageBubbleProps) {
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const getQualityInfo = (quality: string) => {
-    switch (quality) {
-      case 'dry':
-        return { label: 'Dry', className: 'message-quality-dry' };
-      case 'neutral':
-        return { label: 'Okay', className: 'message-quality-neutral' };
-      case 'playful':
-        return { label: 'Playful', className: 'message-quality-playful' };
-      default:
-        return { label: 'Okay', className: 'message-quality-neutral' };
+  const formatDate = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) {
+      return 'Today';
+    } else if (diffDays === 1) {
+      return 'Yesterday';
+    } else if (diffDays < 7) {
+      return date.toLocaleDateString([], { weekday: 'long' });
+    } else {
+      return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
     }
   };
 
-  const qualityInfo = getQualityInfo(quality);
+  // Removed quality analysis display
 
   return (
     <motion.div
       className={cn(
-        'flex flex-col gap-1 mb-4',
+        'flex flex-col',
         sender === 'me' ? 'items-end' : 'items-start',
+        showTimestamp ? 'mb-4' : 'mb-1', // Reduce spacing when no timestamp
         className
       )}
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.18 }}
     >
-      <div className="flex items-center gap-2 mb-1">
-        <span className={cn(
-          'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border',
-          qualityInfo.className
-        )}>
-          {qualityInfo.label}
-        </span>
-        <span className="text-xs text-muted-foreground">
-          {formatTime(timestamp)}
-        </span>
-      </div>
+      {showTimestamp && (
+        <div className="flex justify-center mb-4 w-full">
+          <span className="text-xs text-muted-foreground font-medium">
+            {formatDate(timestamp)} • {formatTime(timestamp)}
+          </span>
+        </div>
+      )}
       
       <div className={cn(
         'max-w-[70%] px-4 py-3 rounded-2xl shadow-sm',
