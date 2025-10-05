@@ -57,13 +57,15 @@ export function MessageBubble({ text, sender, timestamp, showTimestamp = true, c
       )}
       
       <div className={cn(
-        'max-w-[70%] px-4 py-3 rounded-2xl shadow-sm',
+        'max-w-[85%] px-4 py-3 rounded-2xl shadow-sm break-words',
         sender === 'me' 
           ? 'bg-primary text-primary-foreground rounded-br-md' 
           : 'bg-card border border-border rounded-bl-md',
-        'relative'
+        'relative',
+        // dynamic width based on text length
+        text.length > 100 ? 'max-w-[95%]' : text.length > 50 ? 'max-w-[80%]' : 'max-w-[70%]'
       )}>
-        <p className="text-sm leading-relaxed whitespace-pre-wrap">
+        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words overflow-wrap-anywhere">
           {text}
         </p>
         

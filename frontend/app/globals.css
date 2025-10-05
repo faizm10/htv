@@ -152,4 +152,16 @@
   .text-balance {
     text-wrap: balance;
   }
+  
+  /* chat message word breaking */
+  .break-words {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+  
+  /* auto-resize textarea */
+  .auto-resize {
+    resize: none;
+    overflow: hidden;
+  }
 }
