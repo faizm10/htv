@@ -621,6 +621,7 @@ function ChatContent() {
                 currentDraft={draft}
                 lastMessages={selectedConversation?.messages.slice(-3).map((m: any) => m.text) || []}
                 metrics={selectedConversation?.metrics || { daysSinceReply: 0, responseRate: 0, averageDryness: 0, ghostScoreTrend: 0 }}
+                conversationId={selectedConversationId}
                 className="h-full"
               />
             </div>

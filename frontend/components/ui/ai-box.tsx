@@ -7,6 +7,9 @@ import { cn } from '@/lib/utils';
 import { MetricCard } from './metric-card';
 import { generateRewrite, generateNudge, generateExit, testGeminiConnection } from '@/lib/gemini';
 import { generateInsights, getInsightSummary, formatInsightMetric, type ConversationInsights } from '@/lib/insights-service';
+import { getConversationInsights, type ConversationInsight } from '@/lib/conversation-insights-service';
+import { InsightsDashboard } from './insights-dashboard';
+import { InsightsLoading } from './insights-loading';
 
 interface AIBoxProps {
   currentDraft: string;
@@ -37,6 +40,12 @@ export function AIBox({ currentDraft, lastMessages, metrics, conversationId, cla
   const [insightsLoading, setInsightsLoading] = useState(false);
   const [insightsError, setInsightsError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // New conversation insights state
+  const [conversationInsights, setConversationInsights] = useState<ConversationInsight | null>(null);
+  const [conversationInsightsLoading, setConversationInsightsLoading] = useState(false);
+  const [conversationInsightsError, setConversationInsightsError] = useState<string | null>(null);
+  const [useNewInsights, setUseNewInsights] = useState(true);
   
   // Rewrite tab state
   const [rewriteMessage, setRewriteMessage] = useState('');
@@ -178,37 +187,131 @@ export function AIBox({ currentDraft, lastMessages, metrics, conversationId, cla
   };
 
   const loadInsights = async (isRefresh = false) => {
-    if (!conversationId) return;
+    if (!conversationId) {
+      console.log('⚠️ [AI Box] No conversation ID provided, skipping insights load');
+      return;
+    }
+    
+    console.log('🔄 [AI Box] Loading insights for conversation:', conversationId, {
+      useNewInsights,
+      isRefresh,
+      currentState: {
+        conversationInsightsLoading,
+        insightsLoading,
+        isRefreshing
+      }
+    });
+    
+    if (useNewInsights) {
+      // Use new conversation insights system
+      console.log('🤖 [AI Box] Using AI Enhanced insights system');
+      if (isRefresh) {
+        setIsRefreshing(true);
+        console.log('🔄 [AI Box] Set refreshing state to true');
+      } else {
+        setConversationInsightsLoading(true);
+        console.log('⏳ [AI Box] Set conversation insights loading to true');
+      }
+      setConversationInsightsError(null);
+      
+      try {
+        console.log('🚀 [AI Box] Calling getConversationInsights...');
+        const data = await getConversationInsights(conversationId);
+        if (data) {
+          console.log('✅ [AI Box] Conversation insights received:', {
+            conversationId: data.conversationId,
+            overallHealth: data.overallHealth,
+            participantCount: data.participants.length,
+            hasSummary: !!data.summary,
+            hasInsights: !!data.insights,
+            hasSuggestions: !!data.suggestions
+          });
+          setConversationInsights(data);
+        } else {
+          console.error('❌ [AI Box] No data returned from getConversationInsights');
+          throw new Error('Failed to generate conversation insights');
+        }
+      } catch (error) {
+        console.error('❌ [AI Box] Error in AI Enhanced insights:', error);
+        setConversationInsightsError(error instanceof Error ? error.message : 'Failed to load conversation insights');
+        // Fallback to old system
+        console.log('🔄 [AI Box] Falling back to basic insights system');
+        setUseNewInsights(false);
+        await loadOldInsights(isRefresh);
+      } finally {
+        setConversationInsightsLoading(false);
+        setIsRefreshing(false);
+        console.log('✅ [AI Box] Loading states reset');
+      }
+    } else {
+      // Use old insights system
+      console.log('📊 [AI Box] Using basic insights system');
+      await loadOldInsights(isRefresh);
+    }
+  };
+
+  const loadOldInsights = async (isRefresh = false) => {
+    if (!conversationId) {
+      console.log('⚠️ [AI Box] No conversation ID provided for old insights');
+      return;
+    }
+    
+    console.log('📊 [AI Box] Loading basic insights for conversation:', conversationId, { isRefresh });
     
     if (isRefresh) {
       setIsRefreshing(true);
+      console.log('🔄 [AI Box] Set refreshing state to true (basic insights)');
     } else {
       setInsightsLoading(true);
+      console.log('⏳ [AI Box] Set insights loading to true (basic insights)');
     }
     setInsightsError(null);
     
     try {
+      console.log('🚀 [AI Box] Calling generateInsights (basic)...');
       const data = await generateInsights(conversationId);
+      console.log('✅ [AI Box] Basic insights received:', {
+        hasData: !!data,
+        userCount: data ? Object.keys(data).length : 0
+      });
       setInsights(data);
     } catch (error) {
+      console.error('❌ [AI Box] Error in basic insights:', error);
       setInsightsError(error instanceof Error ? error.message : 'Failed to load insights');
     } finally {
       setInsightsLoading(false);
       setIsRefreshing(false);
+      console.log('✅ [AI Box] Basic insights loading states reset');
     }
   };
 
   // Load insights when switching to insights tab or when conversation changes
   useEffect(() => {
-    if (activeTab === 'insights' && conversationId && !insightsLoading) {
+    console.log('🔄 [AI Box] useEffect triggered for insights loading:', {
+      activeTab,
+      conversationId,
+      conversationInsightsLoading,
+      insightsLoading,
+      shouldLoad: activeTab === 'insights' && conversationId && !conversationInsightsLoading && !insightsLoading
+    });
+    
+    if (activeTab === 'insights' && conversationId && !conversationInsightsLoading && !insightsLoading) {
+      console.log('✅ [AI Box] Conditions met, loading insights...');
       loadInsights();
+    } else {
+      console.log('⏸️ [AI Box] Conditions not met, skipping insights load');
     }
   }, [activeTab, conversationId]);
 
   // Clear insights when conversation changes
   useEffect(() => {
+    console.log('🧹 [AI Box] Conversation changed, clearing insights state:', conversationId);
     setInsights(null);
     setInsightsError(null);
+    setConversationInsights(null);
+    setConversationInsightsError(null);
+    setUseNewInsights(true); // Reset to new insights system for new conversation
+    console.log('✅ [AI Box] Insights state cleared and reset to AI Enhanced mode');
   }, [conversationId]);
 
   const renderTabContent = () => {
@@ -368,33 +471,49 @@ export function AIBox({ currentDraft, lastMessages, metrics, conversationId, cla
           </div>
         );
       case 'insights':
-        if (insightsLoading) {
+        console.log('🎯 [AI Box] Rendering insights tab:', {
+          conversationInsightsLoading,
+          insightsLoading,
+          conversationInsightsError,
+          insightsError,
+          conversationInsights: !!conversationInsights,
+          insights: !!insights,
+          useNewInsights,
+          conversationId
+        });
+        
+        // Show loading state
+        if (conversationInsightsLoading || insightsLoading) {
           return (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="text-sm font-medium">Conversation Insights</div>
-                <div className="p-1">
-                  <RotateCcw className="w-3 h-3 animate-spin" />
+                <div className="flex items-center gap-2">
+                  {useNewInsights && (
+                    <div className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full">
+                      AI Enhanced
+                    </div>
+                  )}
+                  <div className="p-1">
+                    <RotateCcw className="w-3 h-3 animate-spin" />
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center justify-center h-24">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
-                  <div className="text-xs text-muted-foreground">Loading insights...</div>
-                </div>
-              </div>
+              <InsightsLoading />
             </div>
           );
         }
 
-        if (insightsError) {
+        // Show error state
+        if (conversationInsightsError || insightsError) {
+          const error = conversationInsightsError || insightsError;
           return (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="text-sm font-medium">Conversation Insights</div>
                 <button
                   onClick={() => loadInsights(true)}
-                  disabled={insightsLoading || isRefreshing}
+                  disabled={conversationInsightsLoading || insightsLoading || isRefreshing}
                   className="p-1 hover:bg-muted rounded transition-colors"
                   title="Refresh insights"
                 >
@@ -402,160 +521,198 @@ export function AIBox({ currentDraft, lastMessages, metrics, conversationId, cla
                 </button>
               </div>
               <div className="text-center text-red-500">
-                <p className="text-sm mb-2">Error loading insights: {insightsError}</p>
-                <button 
-                  onClick={() => loadInsights()}
-                  className="px-3 py-1 bg-primary text-primary-foreground rounded text-sm hover:bg-primary/90"
-                >
-                  Retry
-                </button>
+                <p className="text-sm mb-2">Error loading insights: {error}</p>
+                <div className="space-y-2">
+                  <button 
+                    onClick={() => loadInsights()}
+                    className="px-3 py-1 bg-primary text-primary-foreground rounded text-sm hover:bg-primary/90 mr-2"
+                  >
+                    Retry
+                  </button>
+                  {useNewInsights && (
+                    <button 
+                      onClick={() => {
+                        setUseNewInsights(false);
+                        loadInsights();
+                      }}
+                      className="px-3 py-1 bg-muted text-foreground rounded text-sm hover:bg-muted/80"
+                    >
+                      Use Basic Insights
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           );
         }
 
-        if (!insights) {
+        // Show new conversation insights if available
+        if (conversationInsights && useNewInsights) {
           return (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <div className="text-sm font-medium">Conversation Insights</div>
-                <button
-                  onClick={() => loadInsights(true)}
-                  disabled={insightsLoading || isRefreshing}
-                  className="p-1 hover:bg-muted rounded transition-colors"
-                  title="Refresh insights"
-                >
-                  <RotateCcw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
-                </button>
+                <div className="flex items-center gap-2">
+                  <div className="text-sm font-medium">Conversation Insights</div>
+                  <div className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full">
+                    AI Enhanced
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setUseNewInsights(false);
+                      loadInsights();
+                    }}
+                    className="text-xs px-2 py-1 bg-muted hover:bg-muted/80 rounded transition-colors"
+                    title="Switch to basic insights"
+                  >
+                    Basic
+                  </button>
+                  <button
+                    onClick={() => loadInsights(true)}
+                    disabled={conversationInsightsLoading || isRefreshing}
+                    className="p-1 hover:bg-muted rounded transition-colors"
+                    title="Refresh insights"
+                  >
+                    <RotateCcw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  </button>
+                </div>
               </div>
-              <div className="text-center text-muted-foreground">
-                <p className="text-sm">No insights available</p>
+              <InsightsDashboard insights={conversationInsights} />
+            </div>
+          );
+        }
+
+        // Show old insights if available
+        if (insights && !useNewInsights) {
+          const summary = getInsightSummary(insights);
+          const users = Object.values(insights);
+
+          return (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="text-sm font-medium">Conversation Insights</div>
+                  <div className="text-xs px-2 py-1 bg-muted text-muted-foreground rounded-full">
+                    Basic
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setUseNewInsights(true);
+                      loadInsights();
+                    }}
+                    className="text-xs px-2 py-1 bg-primary/10 text-primary hover:bg-primary/20 rounded transition-colors"
+                    title="Switch to AI enhanced insights"
+                  >
+                    AI Enhanced
+                  </button>
+                  <button
+                    onClick={() => loadInsights(true)}
+                    disabled={insightsLoading || isRefreshing}
+                    className="p-1 hover:bg-muted rounded transition-colors"
+                    title="Refresh insights"
+                  >
+                    <RotateCcw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Summary */}
+              <div className="p-3 bg-muted/50 rounded-lg">
+                <div className="text-sm font-medium mb-2">Conversation Health</div>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <span className="text-muted-foreground">Avg Ghost Score:</span>
+                    <span className={`ml-1 font-medium ${
+                      summary.averageGhostScore <= 30 ? 'text-green-600' :
+                      summary.averageGhostScore <= 60 ? 'text-yellow-600' : 'text-red-600'
+                    }`}>
+                      {summary.averageGhostScore}/100
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Status:</span>
+                    <span className={`ml-1 font-medium ${
+                      summary.conversationHealth === 'healthy' ? 'text-green-600' :
+                      summary.conversationHealth === 'warning' ? 'text-yellow-600' : 'text-red-600'
+                    }`}>
+                      {summary.conversationHealth.toUpperCase()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* User Insights */}
+              <div className="space-y-3">
+                {users.map((userInsight) => (
+                  <div key={userInsight.user.id} className="p-3 bg-muted/30 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <User className="w-3 h-3 text-muted-foreground" />
+                      <span className="text-sm font-medium">{userInsight.user.name}</span>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-muted-foreground" />
+                        <span className="text-muted-foreground">Days:</span>
+                        <span className="font-medium">
+                          {userInsight.metrics.daysSinceReply !== null 
+                            ? formatInsightMetric(userInsight.metrics.daysSinceReply, 'days')
+                            : 'N/A'
+                          }
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <TrendingDown className="w-3 h-3 text-muted-foreground" />
+                        <span className="text-muted-foreground">Rate:</span>
+                        <span className="font-medium">
+                          {formatInsightMetric(userInsight.metrics.responseRate, 'percentage')}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <MessageSquare className="w-3 h-3 text-muted-foreground" />
+                        <span className="text-muted-foreground">Dryness:</span>
+                        <span className="font-medium">
+                          {formatInsightMetric(userInsight.metrics.drynessScore, 'percentage')}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <BarChart3 className="w-3 h-3 text-muted-foreground" />
+                        <span className="text-muted-foreground">Ghost:</span>
+                        <span className={`font-medium ${
+                          userInsight.metrics.ghostScore <= 30 ? 'text-green-600' :
+                          userInsight.metrics.ghostScore <= 60 ? 'text-yellow-600' : 'text-red-600'
+                        }`}>
+                          {formatInsightMetric(userInsight.metrics.ghostScore, 'score')}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           );
         }
 
-        const summary = getInsightSummary(insights);
-        const users = Object.values(insights);
-
+        // Show no insights available
         return (
           <div className="space-y-4">
-            {/* Header with refresh button */}
             <div className="flex items-center justify-between">
               <div className="text-sm font-medium">Conversation Insights</div>
               <button
                 onClick={() => loadInsights(true)}
-                disabled={insightsLoading || isRefreshing}
+                disabled={conversationInsightsLoading || insightsLoading || isRefreshing}
                 className="p-1 hover:bg-muted rounded transition-colors"
                 title="Refresh insights"
               >
                 <RotateCcw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
               </button>
             </div>
-
-            {/* Summary */}
-            <div className="p-3 bg-muted/50 rounded-lg">
-              <div className="text-sm font-medium mb-2">Conversation Health</div>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div>
-                  <span className="text-muted-foreground">Avg Ghost Score:</span>
-                  <span className={`ml-1 font-medium ${
-                    summary.averageGhostScore <= 30 ? 'text-green-600' :
-                    summary.averageGhostScore <= 60 ? 'text-yellow-600' : 'text-red-600'
-                  }`}>
-                    {summary.averageGhostScore}/100
-                  </span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Status:</span>
-                  <span className={`ml-1 font-medium ${
-                    summary.conversationHealth === 'healthy' ? 'text-green-600' :
-                    summary.conversationHealth === 'warning' ? 'text-yellow-600' : 'text-red-600'
-                  }`}>
-                    {summary.conversationHealth.toUpperCase()}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* User Insights */}
-            <div className="space-y-3">
-              {users.map((userInsight) => (
-                <div key={userInsight.user.id} className="p-3 bg-muted/30 rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <User className="w-3 h-3 text-muted-foreground" />
-                    <span className="text-sm font-medium">{userInsight.user.name}</span>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-muted-foreground" />
-                      <span className="text-muted-foreground">Days:</span>
-                      <span className="font-medium">
-                        {userInsight.metrics.daysSinceReply !== null 
-                          ? formatInsightMetric(userInsight.metrics.daysSinceReply, 'days')
-                          : 'N/A'
-                        }
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <TrendingDown className="w-3 h-3 text-muted-foreground" />
-                      <span className="text-muted-foreground">Rate:</span>
-                      <span className="font-medium">
-                        {formatInsightMetric(userInsight.metrics.responseRate, 'percentage')}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <MessageSquare className="w-3 h-3 text-muted-foreground" />
-                      <span className="text-muted-foreground">Dryness:</span>
-                      <span className="font-medium">
-                        {formatInsightMetric(userInsight.metrics.drynessScore, 'percentage')}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <BarChart3 className="w-3 h-3 text-muted-foreground" />
-                      <span className="text-muted-foreground">Ghost:</span>
-                      <span className={`font-medium ${
-                        userInsight.metrics.ghostScore <= 30 ? 'text-green-600' :
-                        userInsight.metrics.ghostScore <= 60 ? 'text-yellow-600' : 'text-red-600'
-                      }`}>
-                        {formatInsightMetric(userInsight.metrics.ghostScore, 'score')}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* API Test Section */}
-            <div className="pt-3 border-t border-border">
-              <div className="text-sm font-medium mb-2">API Status</div>
-              <button
-                onClick={handleTestApi}
-                disabled={isTestingApi}
-                className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-muted border border-border rounded-lg text-sm hover:bg-muted/80 transition-colors disabled:opacity-50"
-              >
-                {isTestingApi ? (
-                  <>
-                    <div className="w-3 h-3 border-2 border-muted-foreground/30 border-t-muted-foreground rounded-full animate-spin" />
-                    Testing...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-3 h-3" />
-                    Test Gemini API
-                  </>
-                )}
-              </button>
-              {apiTestResult && (
-                <div className={`mt-2 p-2 rounded text-xs ${
-                  apiTestResult.includes('working') || apiTestResult.includes('Present')
-                    ? 'bg-green-100 text-green-800 border border-green-200'
-                    : 'bg-red-100 text-red-800 border border-red-200'
-                }`}>
-                  {apiTestResult}
-                </div>
-              )}
+            <div className="text-center text-muted-foreground">
+              <p className="text-sm">No insights available</p>
+              <p className="text-xs mt-1">Click refresh to generate insights</p>
             </div>
           </div>
         );
