@@ -54,7 +54,7 @@ export class SupabaseDatabaseService implements DatabaseService {
 
   async ensureUserExists(userId: string, userData?: Partial<User>): Promise<User> {
     // First try to get the user
-    let user = await this.getUser(userId);
+    const user = await this.getUser(userId);
     
     if (user) {
       return user;
