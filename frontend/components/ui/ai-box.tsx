@@ -145,6 +145,12 @@ export function AIBox({ currentDraft, lastMessages, metrics, conversationId, cla
 
   const handleGenerate = async (type: TabType) => {
     setIsGenerating(true);
+    
+    // Clear previous suggestions when starting new generation
+    if (type === 'rewrite') {
+      setSuggestions([]);
+    }
+    
     try {
       let result: string[] = [];
       
@@ -761,8 +767,8 @@ export function AIBox({ currentDraft, lastMessages, metrics, conversationId, cla
         </motion.div>
       </AnimatePresence>
 
-      {/* Suggestions */}
-      {suggestions.length > 0 && (
+      {/* Suggestions - Only show in rewrite tab */}
+      {activeTab === 'rewrite' && suggestions.length > 0 && (
         <motion.div
           className="mt-4 pt-4 border-t border-border"
           initial={{ opacity: 0, y: 10 }}
@@ -771,18 +777,27 @@ export function AIBox({ currentDraft, lastMessages, metrics, conversationId, cla
           <h4 className="text-sm font-medium mb-3">Suggestions:</h4>
           <div className="space-y-2">
             {suggestions.map((suggestion, index) => (
-              <motion.button
+              <motion.div
                 key={index}
-                onClick={() => {
-                  // Copy to clipboard
-                  navigator.clipboard.writeText(suggestion);
-                }}
-                className="w-full text-left p-3 text-sm bg-muted hover:bg-muted/80 rounded-lg transition-colors border border-transparent hover:border-border"
+                className="flex items-start gap-2 p-3 bg-muted rounded-lg border border-transparent hover:border-border transition-colors"
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.99 }}
               >
-                {suggestion}
-              </motion.button>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(suggestion);
+                  }}
+                  className="flex-shrink-0 p-1.5 text-muted-foreground hover:text-foreground hover:bg-background/50 rounded transition-colors"
+                  title="Copy to clipboard"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                </button>
+                <div className="flex-1 text-sm">
+                  {suggestion}
+                </div>
+              </motion.div>
             ))}
           </div>
         </motion.div>
