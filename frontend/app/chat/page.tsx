@@ -696,7 +696,7 @@ function ChatContent() {
                     </div>
                     <div>
                       <h2 className="font-semibold">{selectedConversation.name}</h2>
-                      <p className="text-sm text-muted-foreground">{selectedConversation.lastSeen}</p>
+                      {/* <p className="text-sm text-muted-foreground">{selectedConversation.lastSeen}</p> */}
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
