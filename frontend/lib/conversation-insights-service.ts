@@ -22,12 +22,12 @@ export interface MessageData {
   senderId: string;
   content: {
     text: string;
-    type: 'text' | 'image' | 'file';
+    type: 'text' | 'image' | 'link' | 'emoji' | 'voice';
     metadata?: any;
   };
   timestamp: string;
   analysis: {
-    quality?: number;
+    quality?: 'playful' | 'neutral' | 'dry' | 'engaging';
     requiresResponse?: boolean;
     sentiment?: 'positive' | 'neutral' | 'negative';
     topics?: string[];
@@ -118,7 +118,7 @@ export async function fetchConversationData(conversationId: string): Promise<Con
     console.log('✅ [Insights] Conversation found:', {
       id: conversation.id,
       participants: conversation.participants,
-      messageCount: conversation.metadata?.messageCount || 'unknown'
+      metadata: conversation.metadata
     });
 
     // Get all messages for this conversation
@@ -130,9 +130,9 @@ export async function fetchConversationData(conversationId: string): Promise<Con
         id: messages[0].id,
         senderId: messages[0].senderId,
         timestamp: messages[0].timestamp,
-        contentPreview: typeof messages[0].content === 'string' 
-          ? messages[0].content.substring(0, 50) + '...'
-          : messages[0].content?.text?.substring(0, 50) + '...'
+        contentPreview: messages[0].content?.text ? 
+          messages[0].content.text.substring(0, 50) + '...' : 
+          'No text content'
       } : 'No messages'
     });
     
@@ -167,8 +167,8 @@ export async function fetchConversationData(conversationId: string): Promise<Con
       context: conversation.context,
       metrics: conversation.metrics,
       settings: conversation.settings,
-      createdAt: conversation.created_at,
-      updatedAt: conversation.updated_at
+      createdAt: conversation.metadata?.createdAt || new Date().toISOString(),
+      updatedAt: conversation.metadata?.updatedAt || new Date().toISOString()
     };
 
     console.log('✅ [Insights] Conversation data prepared:', {
