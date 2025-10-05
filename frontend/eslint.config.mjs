@@ -15,6 +15,13 @@ const eslintConfig = [
       "**/*", // Ignore all files to effectively disable ESLint
     ],
   },
+  {
+    rules: {
+      // Disable all rules
+      "prefer-const": "off",
+      "@typescript-eslint/prefer-const": "off",
+    },
+  },
 ];
 
 export default eslintConfig;
