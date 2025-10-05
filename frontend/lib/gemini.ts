@@ -1,7 +1,7 @@
 // frontend/lib/gemini.ts
 // This safely runs in the browser and talks to your API route.
 
-async function callGeminiAPI(prompt: string) {
+export async function callGeminiAPI(prompt: string) {
   try {
     console.log('🚀 Making request to /api/generate...');
     const res = await fetch("/api/generate", {
