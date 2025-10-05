@@ -19,7 +19,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Suspense } from 'react';
 
-type FilterType = 'all' | 'risky' | 'active';
+type FilterType = 'all' | 'ghosted';
 
 function ChatContent() {
   const db = useDatabaseData();
@@ -84,6 +84,66 @@ function ChatContent() {
       .join('');
   };
 
+  // Helper function to calculate how long someone has been left on "delivered"
+  const calculateDeliveredTime = (messages: any[], currentUserId: string) => {
+    if (!messages || messages.length === 0) return null;
+    
+    // Find the last message that was sent TO the current user (not by them)
+    const lastIncomingMessage = messages
+      .filter(msg => msg.sender === 'them')
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+    
+    if (!lastIncomingMessage) return null;
+    
+    // Check if there's a response after this message
+    const lastOutgoingMessage = messages
+      .filter(msg => msg.sender === 'me')
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+    
+    // If no outgoing message or the incoming message is newer, they're left on delivered
+    if (!lastOutgoingMessage || new Date(lastIncomingMessage.timestamp) > new Date(lastOutgoingMessage.timestamp)) {
+      const now = new Date();
+      const deliveredTime = new Date(lastIncomingMessage.timestamp);
+      const diffMs = now.getTime() - deliveredTime.getTime();
+      const diffHours = diffMs / (1000 * 60 * 60);
+      const diffDays = diffMs / (1000 * 60 * 60 * 24);
+      
+      return {
+        hours: Math.floor(diffHours),
+        days: Math.floor(diffDays),
+        totalHours: diffHours,
+        totalDays: diffDays
+      };
+    }
+    
+    return null;
+  };
+
+  // Helper function to get color based on delivered time
+  const getDeliveredTimeColor = (deliveredTime: any) => {
+    if (!deliveredTime) return 'text-muted-foreground';
+    
+    if (deliveredTime.totalDays >= 7) return 'text-red-500'; // More than 1 week - red
+    if (deliveredTime.totalDays >= 3) return 'text-orange-500'; // 3-7 days - orange
+    if (deliveredTime.totalDays >= 1) return 'text-yellow-500'; // 1-3 days - yellow
+    if (deliveredTime.totalHours >= 6) return 'text-blue-500'; // 6-24 hours - blue
+    return 'text-green-500'; // Less than 6 hours - green
+  };
+
+  // Helper function to format delivered time
+  const formatDeliveredTime = (deliveredTime: any) => {
+    if (!deliveredTime) return null;
+    
+    if (deliveredTime.days > 0) {
+      return `${deliveredTime.days}d ${deliveredTime.hours % 24}h`;
+    } else if (deliveredTime.hours > 0) {
+      return `${deliveredTime.hours}h`;
+    } else {
+      const minutes = Math.floor(deliveredTime.totalHours * 60);
+      return `${minutes}m`;
+    }
+  };
+
   // Load conversations from Supabase after user is authenticated
   useEffect(() => {
     if (!user?.id) return; // Don't load conversations until user is authenticated
@@ -111,6 +171,18 @@ function ChatContent() {
               const isActive = otherUser.analytics.lastActiveAt && 
                 new Date(otherUser.analytics.lastActiveAt) > new Date(Date.now() - 24 * 60 * 60 * 1000);
               
+              // Calculate delivered time for this conversation
+              const deliveredTime = calculateDeliveredTime(
+                messages.map(msg => ({
+                  id: msg.id,
+                  text: msg.content.text,
+                  sender: msg.senderId === user.id ? 'me' : 'them',
+                  timestamp: msg.timestamp,
+                  quality: msg.analysis.quality === 'engaging' ? 'playful' : msg.analysis.quality
+                })), 
+                user.id
+              );
+              
               legacyConversations.push({
                 id: conversation.id,
                 participants: conversation.participants, // Preserve participants field
@@ -122,6 +194,7 @@ function ChatContent() {
                 lastSeen: formatLastSeen(otherUser.analytics.lastActiveAt),
                 isActive,
                 isRisky: conversation.metrics.conversationHealth === 'critical' || conversation.metrics.conversationHealth === 'at_risk',
+                deliveredTime, // Add delivered time tracking
                 messages: messages.map(msg => ({
                   id: msg.id,
                   text: msg.content.text,
@@ -184,10 +257,9 @@ function ChatContent() {
                          conversation.lastMessage.toLowerCase().includes(searchQuery.toLowerCase());
     
     switch (filter) {
-      case 'risky':
-        return conversation.isRisky && matchesSearch;
-      case 'active':
-        return conversation.isActive && matchesSearch;
+      case 'ghosted':
+        // Filter for conversations left on delivered for more than 1 week
+        return conversation.deliveredTime && conversation.deliveredTime.totalDays >= 7 && matchesSearch;
       default:
         return matchesSearch;
     }
@@ -283,6 +355,18 @@ function ChatContent() {
             const isActive = otherUser.analytics.lastActiveAt && 
               new Date(otherUser.analytics.lastActiveAt) > new Date(Date.now() - 24 * 60 * 60 * 1000);
             
+            // Calculate delivered time for this conversation
+            const deliveredTime = calculateDeliveredTime(
+              messages.map(msg => ({
+                id: msg.id,
+                text: msg.content.text,
+                sender: msg.senderId === user.id ? 'me' : 'them',
+                timestamp: msg.timestamp,
+                quality: msg.analysis.quality === 'engaging' ? 'playful' : msg.analysis.quality
+              })), 
+              user.id
+            );
+            
             legacyConversations.push({
               id: conversation.id,
               participants: conversation.participants, // Preserve participants field
@@ -294,6 +378,7 @@ function ChatContent() {
               lastSeen: formatLastSeen(otherUser.analytics.lastActiveAt),
               isActive,
               isRisky: conversation.metrics.conversationHealth === 'critical' || conversation.metrics.conversationHealth === 'at_risk',
+              deliveredTime, // Add delivered time tracking
               messages: messages.map(msg => ({
                 id: msg.id,
                 text: msg.content.text,
@@ -404,13 +489,12 @@ function ChatContent() {
             <div className="flex gap-2 mb-4">
               {[
                 { id: 'all', label: 'All', count: conversations.length },
-                { id: 'risky', label: 'Risky', count: conversations.filter(c => c.isRisky).length },
-                { id: 'active', label: 'Active', count: conversations.filter(c => c.isActive).length },
+                { id: 'ghosted', label: 'Ghosted', count: conversations.filter(c => c.deliveredTime && c.deliveredTime.totalDays >= 7).length },
               ].map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setFilter(tab.id as FilterType)}
-                  className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  className={`flex-1 px-3 py-2 text-xs font-medium rounded-lg transition-colors ${
                     filter === tab.id
                       ? 'bg-primary text-primary-foreground'
                       : 'bg-muted text-muted-foreground hover:bg-muted/80'
@@ -433,41 +517,131 @@ function ChatContent() {
             ) : (
               <div className="p-2 space-y-1">
                 {filteredConversations.map((conversation) => (
-                  <button
+                  <motion.button
                     key={conversation.id}
                     onClick={() => handleConversationSelect(conversation.id)}
-                    className={`w-full p-3 rounded-lg hover:bg-muted/50 transition-colors text-left ${
-                      selectedConversationId === conversation.id ? 'bg-primary/10 border border-primary/20' : ''
+                    className={`w-full p-4 rounded-xl hover:bg-gradient-to-r hover:from-muted/30 hover:to-muted/20 transition-all duration-200 text-left group ${
+                      selectedConversationId === conversation.id 
+                        ? 'bg-gradient-to-r from-primary/15 to-primary/10 border-2 border-primary/30 shadow-lg' 
+                        : 'border border-transparent hover:border-border/50 hover:shadow-md'
                     }`}
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2 }}
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-sm font-medium">
-                        {getInitials(conversation.name)}
+                    <div className="flex items-center gap-4">
+                      {/* Avatar with fun styling */}
+                      <div className="relative">
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-200 ${
+                          conversation.ghostScore > 70 
+                            ? 'bg-gradient-to-br from-red-400 to-red-600 text-white shadow-lg' 
+                            : conversation.ghostScore > 40 
+                            ? 'bg-gradient-to-br from-orange-400 to-orange-600 text-white shadow-md'
+                            : 'bg-gradient-to-br from-green-400 to-green-600 text-white shadow-sm'
+                        }`}>
+                          {getInitials(conversation.name)}
+                        </div>
+                        {conversation.isActive && (
+                          <motion.div 
+                            className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-background"
+                            animate={{ scale: [1, 1.2, 1] }}
+                            transition={{ duration: 2, repeat: Infinity }}
+                          />
+                        )}
                       </div>
+                      
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium truncate">{conversation.name}</span>
-                          {conversation.isActive && (
-                            <div className="w-2 h-2 bg-green-400 rounded-full" />
+                        {/* Name with fun styling */}
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="font-semibold text-base truncate group-hover:text-primary transition-colors">
+                            {conversation.name}
+                          </span>
+                          {conversation.deliveredTime && conversation.deliveredTime.totalDays >= 7 && (
+                            <motion.span 
+                              className="text-lg"
+                              animate={{ rotate: [0, 10, -10, 0] }}
+                              transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2 }}
+                            >
+                              👻
+                            </motion.span>
                           )}
                         </div>
-                        <p className="text-sm text-muted-foreground truncate">
-                          {conversation.lastMessage}
+                        
+                        {/* Last message with better styling */}
+                        <p className="text-sm text-muted-foreground truncate mb-2 group-hover:text-foreground transition-colors">
+                          {conversation.lastMessage || "No messages yet..."}
                         </p>
-                        <div className="flex items-center justify-between mt-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground">
+                        
+                        {/* Status indicators with fun styling */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-full">
                               {conversation.lastSeen}
                             </span>
-                            {conversation.metrics.responseRate < 0.5 && (
-                              <span className="text-xs text-orange-500">⚠️ Low response rate</span>
+                            {conversation.deliveredTime && (
+                              <motion.span 
+                                className={`text-xs font-semibold px-2 py-1 rounded-full ${getDeliveredTimeColor(conversation.deliveredTime)} bg-current/10`}
+                                whileHover={{ scale: 1.1 }}
+                              >
+                                📱 {formatDeliveredTime(conversation.deliveredTime)}
+                              </motion.span>
                             )}
                           </div>
-                          <GhostBadge score={conversation.ghostScore} size="sm" />
+                          
+                          {/* Fun status emoji based on delivered time */}
+                          <div className="text-lg">
+                            {conversation.deliveredTime ? (
+                              conversation.deliveredTime.totalDays >= 7 ? (
+                                <motion.span
+                                  animate={{ rotate: [0, -15, 15, 0] }}
+                                  transition={{ duration: 0.8, repeat: Infinity, repeatDelay: 1 }}
+                                >
+                                  💀
+                                </motion.span>
+                              ) : conversation.deliveredTime.totalDays >= 3 ? (
+                                <motion.span
+                                  animate={{ scale: [1, 1.2, 1] }}
+                                  transition={{ duration: 1.5, repeat: Infinity }}
+                                >
+                                  😰
+                                </motion.span>
+                              ) : conversation.deliveredTime.totalDays >= 1 ? (
+                                <motion.span
+                                  animate={{ rotate: [0, 10, -10, 0] }}
+                                  transition={{ duration: 2, repeat: Infinity }}
+                                >
+                                  😟
+                                </motion.span>
+                              ) : conversation.deliveredTime.totalHours >= 6 ? (
+                                <motion.span
+                                  animate={{ scale: [1, 1.1, 1] }}
+                                  transition={{ duration: 3, repeat: Infinity }}
+                                >
+                                  😐
+                                </motion.span>
+                              ) : (
+                                <motion.span
+                                  animate={{ rotate: [0, 5, -5, 0] }}
+                                  transition={{ duration: 4, repeat: Infinity }}
+                                >
+                                  😊
+                                </motion.span>
+                              )
+                            ) : (
+                              <motion.span
+                                animate={{ rotate: [0, 5, -5, 0] }}
+                                transition={{ duration: 3, repeat: Infinity }}
+                              >
+                                😊
+                              </motion.span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </button>
+                  </motion.button>
                 ))}
               </div>
             )}
@@ -506,10 +680,6 @@ function ChatContent() {
                         />
                       </button>
                     </div>
-                    <GhostBadge 
-                      score={selectedConversation.ghostScore} 
-                      showPulse={selectedConversation.ghostScore > 80}
-                    />
                   </div>
                 </div>
               </div>
@@ -621,7 +791,7 @@ function ChatContent() {
                 currentDraft={draft}
                 lastMessages={selectedConversation?.messages.slice(-3).map((m: any) => m.text) || []}
                 metrics={selectedConversation?.metrics || { daysSinceReply: 0, responseRate: 0, averageDryness: 0, ghostScoreTrend: 0 }}
-                conversationId={selectedConversationId}
+                conversationId={selectedConversationId || undefined}
                 className="h-full"
               />
             </div>
@@ -659,7 +829,9 @@ function determineQuality(text: string, drynessScore: number): 'dry' | 'neutral'
   return 'engaging';
 }
 
-function formatLastSeen(lastActiveAt: string): string {
+function formatLastSeen(lastActiveAt: string | null): string {
+  if (!lastActiveAt) return 'never';
+  
   const now = new Date();
   const lastActive = new Date(lastActiveAt);
   const diffMs = now.getTime() - lastActive.getTime();
