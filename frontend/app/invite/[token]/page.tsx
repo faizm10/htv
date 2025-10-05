@@ -140,12 +140,15 @@ export default function InvitePage({ params }: InvitePageProps) {
         .from('conversations')
         .insert({
           participants: [user.id, invite?.created_by],
-          type: 'direct',
-          status: 'active',
           metadata: {
             title: `Chat with ${invite?.creator_profile?.name}`,
-            created_via: 'invite'
-          }
+            created_via: 'invite',
+            type: 'direct',
+            status: 'active'
+          },
+          context: {},
+          metrics: {},
+          settings: {}
         })
         .select()
         .single();
