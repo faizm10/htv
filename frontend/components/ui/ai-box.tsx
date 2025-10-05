@@ -729,7 +729,7 @@ export function AIBox({ currentDraft, lastMessages, metrics, conversationId, cla
     <div className={cn('ghost-card p-6 h-fit', className)}>
       <div className="flex items-center gap-2 mb-6">
         <Sparkles className="w-5 h-5 text-primary" />
-        <h3 className="font-semibold">AI Sidekick</h3>
+        <h3 className="font-semibold">Alex</h3>
       </div>
 
       {/* Tabs */}

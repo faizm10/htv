@@ -862,7 +862,7 @@ function ChatContent() {
           )}
         </div>
 
-        {/* Right Panel - AI Sidekick */}
+        {/* Right Panel - Alex */}
         {aiAssistanceEnabled && selectedConversation && (
           <div className="hidden xl:block w-96 border-l border-border overflow-hidden">
             <div className="h-full overflow-y-auto">
