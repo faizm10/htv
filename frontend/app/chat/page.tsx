@@ -540,35 +540,6 @@ function ChatContent() {
                   )}
                 </AnimatePresence>
 
-                {/* Autofill Suggestions */}
-                <AnimatePresence>
-                  {aiAssistanceEnabled && showAutofill && autofillSuggestions.length > 0 && !showSuggestions && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg"
-                    >
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                        <span className="text-sm font-medium text-blue-900">Smart Suggestions</span>
-                        <span className="text-xs text-blue-600">Based on {selectedConversation?.name}'s preferences</span>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {autofillSuggestions.slice(0, 3).map((suggestion, index) => (
-                          <button
-                            key={index}
-                            onClick={() => handleSelectAutofillSuggestion(suggestion)}
-                            className="px-3 py-1 bg-white border border-blue-200 rounded-full text-sm text-blue-800 hover:bg-blue-100 transition-colors"
-                          >
-                            {suggestion}
-                          </button>
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
                 <div className="flex gap-3">
                   <div className="flex-1 relative">
                     <textarea

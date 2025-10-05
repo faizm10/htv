@@ -99,22 +99,6 @@ export function TopBar({ onSearch, className, user }: TopBarProps) {
             }}
           />
         </div>
-
-        {/* Redact Mode Toggle */}
-        <button
-          onClick={handleRedactToggle}
-          className={cn(
-            'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-            redactMode 
-              ? 'bg-destructive/20 text-destructive hover:bg-destructive/30' 
-              : 'bg-muted text-muted-foreground hover:bg-muted/80'
-          )}
-          title={redactMode ? 'Disable redact mode' : 'Enable redact mode'}
-        >
-          {redactMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-          {redactMode ? 'Redacted' : 'Redact'}
-        </button>
-
         {/* User Status */}
         {user ? (
           <div className="flex items-center gap-3">

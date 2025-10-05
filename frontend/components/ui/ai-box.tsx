@@ -50,7 +50,6 @@ export function AIBox({ currentDraft, lastMessages, metrics, conversationId, cla
   const tabs = [
     { id: 'nudge' as const, label: 'Nudge', icon: Wand2 },
     { id: 'rewrite' as const, label: 'Rewrite', icon: RefreshCw },
-    { id: 'exit' as const, label: 'Exit', icon: DoorOpen },
     { id: 'insights' as const, label: 'Insights', icon: BarChart3 },
   ];
 
@@ -153,9 +152,7 @@ export function AIBox({ currentDraft, lastMessages, metrics, conversationId, cla
             ...(vibe && { vibe })
           });
           break;
-        case 'exit':
-          result = await generateExit();
-          break;
+        
       }
       
       setSuggestions(result);
@@ -370,33 +367,6 @@ export function AIBox({ currentDraft, lastMessages, metrics, conversationId, cla
             )}
           </div>
         );
-
-      case 'exit':
-        return (
-          <div className="space-y-4">
-            <div className="text-sm text-muted-foreground">
-              Irish Goodbye, but Polite 🫶
-            </div>
-            <button
-              onClick={() => handleGenerate('exit')}
-              disabled={isGenerating}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-destructive text-destructive-foreground rounded-lg font-medium hover:bg-destructive/90 transition-colors disabled:opacity-50"
-            >
-              {isGenerating ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Crafting...
-                </>
-              ) : (
-                <>
-                  <DoorOpen className="w-4 h-4" />
-                  Generate Exit Message
-                </>
-              )}
-            </button>
-          </div>
-        );
-
       case 'insights':
         if (insightsLoading) {
           return (
