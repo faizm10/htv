@@ -24,10 +24,10 @@ interface AIBoxProps {
   className?: string;
 }
 
-type TabType = 'nudge' | 'rewrite' | 'exit' | 'insights';
+type TabType = 'analyze' | 'rewrite' | 'exit' | 'insights';
 
 export function AIBox({ currentDraft, lastMessages, metrics, conversationId, className }: AIBoxProps) {
-  const [activeTab, setActiveTab] = useState<TabType>('nudge');
+  const [activeTab, setActiveTab] = useState<TabType>('analyze');
   const [isGenerating, setIsGenerating] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   
@@ -56,8 +56,15 @@ export function AIBox({ currentDraft, lastMessages, metrics, conversationId, cla
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Analyze tab state
+  const [analyzeQuestion, setAnalyzeQuestion] = useState('');
+  const [analyzeAnswer, setAnalyzeAnswer] = useState('');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [showDetailedAnalysis, setShowDetailedAnalysis] = useState(false);
+  const [followUpQuestion, setFollowUpQuestion] = useState('');
+
   const tabs = [
-    { id: 'nudge' as const, label: 'Nudge', icon: Wand2 },
+    { id: 'analyze' as const, label: 'Analyze', icon: Wand2 },
     { id: 'rewrite' as const, label: 'Rewrite', icon: RefreshCw },
     { id: 'insights' as const, label: 'Insights', icon: BarChart3 },
   ];
@@ -155,9 +162,10 @@ export function AIBox({ currentDraft, lastMessages, metrics, conversationId, cla
       let result: string[] = [];
       
       switch (type) {
-        case 'nudge':
-          result = await generateNudge({ context: currentDraft });
-          break;
+        case 'analyze':
+          // Handle analyze case separately
+          await handleAnalyze();
+          return;
         case 'rewrite':
           const messageToRewrite = rewriteMessage || currentDraft;
           const vibe = selectedVibe || customVibe;
@@ -189,6 +197,107 @@ export function AIBox({ currentDraft, lastMessages, metrics, conversationId, cla
       setApiTestResult('Test failed: ' + error);
     } finally {
       setIsTestingApi(false);
+    }
+  };
+
+  const handleAnalyze = async () => {
+    if (!analyzeQuestion.trim()) return;
+    
+    setIsAnalyzing(true);
+    setAnalyzeAnswer('');
+    setShowDetailedAnalysis(false);
+    
+    try {
+      // Create a prompt for concise summary
+      const conversationHistory = lastMessages.join('\n');
+      const prompt = `Based on this conversation history:\n\n${conversationHistory}\n\nQuestion: ${analyzeQuestion}\n\nPlease provide a concise summary (max 100 words) with key points in **bold**. Focus on the most important insights.`;
+      
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to get analysis');
+      }
+      
+      const data = await response.json();
+      setAnalyzeAnswer(data.text);
+    } catch (error) {
+      setAnalyzeAnswer(`Error: ${error instanceof Error ? error.message : 'Failed to analyze conversation'}`);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleDetailedAnalysis = async () => {
+    if (!analyzeQuestion.trim() || !analyzeAnswer) return;
+    
+    setIsAnalyzing(true);
+    setShowDetailedAnalysis(true);
+    
+    try {
+      // Create a prompt for detailed analysis
+      const conversationHistory = lastMessages.join('\n');
+      const prompt = `Based on this conversation history:\n\n${conversationHistory}\n\nQuestion: ${analyzeQuestion}\n\nPrevious Analysis: ${analyzeAnswer}\n\nPlease provide a more detailed and comprehensive analysis with deeper insights, patterns, and recommendations.`;
+      
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to get detailed analysis');
+      }
+      
+      const data = await response.json();
+      setAnalyzeAnswer(data.text);
+    } catch (error) {
+      setAnalyzeAnswer(`Error: ${error instanceof Error ? error.message : 'Failed to get detailed analysis'}`);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleFollowUpAnalyze = async () => {
+    if (!followUpQuestion.trim()) return;
+    
+    // Store the current answer, question, and follow-up question for context
+    const previousAnswer = analyzeAnswer;
+    const previousQuestion = analyzeQuestion;
+    const currentFollowUp = followUpQuestion;
+    
+    // Move follow-up question to main question position
+    setAnalyzeQuestion(currentFollowUp);
+    setFollowUpQuestion('');
+    
+    setIsAnalyzing(true);
+    setAnalyzeAnswer('');
+    setShowDetailedAnalysis(false);
+    
+    try {
+      // Create a prompt that includes the previous Q&A and the follow-up question
+      const conversationHistory = lastMessages.join('\n');
+      const prompt = `Based on this conversation history:\n\n${conversationHistory}\n\nPrevious Question: ${previousQuestion}\nPrevious Answer: ${previousAnswer}\n\nFollow-up Question: ${currentFollowUp}\n\nPlease provide a concise summary (max 100 words) with key points in **bold**. Focus on the most important insights related to the follow-up question.`;
+      
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to get follow-up analysis');
+      }
+      
+      const data = await response.json();
+      setAnalyzeAnswer(data.text);
+    } catch (error) {
+      setAnalyzeAnswer(`Error: ${error instanceof Error ? error.message : 'Failed to analyze follow-up question'}`);
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -322,33 +431,122 @@ export function AIBox({ currentDraft, lastMessages, metrics, conversationId, cla
 
   const renderTabContent = () => {
     switch (activeTab) {
-      case 'nudge':
+      case 'analyze':
         return (
           <div className="space-y-4">
             <div className="text-sm text-muted-foreground">
-              Low-risk nudge (2 concrete options + opt-out)
+              Ask something about this conversation…
             </div>
-            <textarea
-              placeholder="Add context for the nudge (optional)..."
-              className="w-full h-20 px-3 py-2 bg-muted border border-border rounded-lg resize-none text-sm"
-            />
-            <button
-              onClick={() => handleGenerate('nudge')}
-              disabled={isGenerating}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
-            >
-              {isGenerating ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Summoning...
-                </>
-              ) : (
-                <>
-                  <Wand2 className="w-4 h-4" />
-                  Summon Nudge 🪄
-                </>
-              )}
-            </button>
+              
+            {!analyzeAnswer ? (
+              <>
+                <textarea
+                  value={analyzeQuestion}
+                  onChange={(e) => setAnalyzeQuestion(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      if (analyzeQuestion.trim() && !isAnalyzing) {
+                        handleAnalyze();
+                      }
+                    }
+                  }}
+                  placeholder="e.g., What's the overall tone of this conversation?"
+                  className="w-full h-20 px-3 py-2 bg-muted border border-border rounded-lg resize-none text-sm"
+                />
+                <button
+                  onClick={handleAnalyze}
+                  disabled={isAnalyzing || !analyzeQuestion.trim()}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Wand2 className="w-4 h-4" />
+                      Analyze Conversation
+                    </>
+                  )}
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="p-3 bg-muted/30 border border-border rounded-lg">
+                  <div className="text-sm font-medium mb-2 text-muted-foreground">Question:</div>
+                  <div className="text-sm mb-3">{analyzeQuestion}</div>
+                </div>
+                
+                <div className="p-3 bg-muted/50 border border-border rounded-lg">
+                  <div className="text-sm font-medium mb-2">Analysis:</div>
+                  <div 
+                    className="text-sm text-muted-foreground whitespace-pre-wrap"
+                    dangerouslySetInnerHTML={{
+                      __html: analyzeAnswer.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    }}
+                  />
+                  {/* {!showDetailedAnalysis && (
+                    <button
+                      onClick={handleDetailedAnalysis}
+                      disabled={isAnalyzing}
+                      className="mt-3 px-3 py-1.5 text-xs bg-primary/10 text-primary hover:bg-primary/20 rounded-md transition-colors disabled:opacity-50"
+                    >
+                      {isAnalyzing ? 'Getting details...' : 'More Detail'}
+                    </button>
+                  )} */}
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="text-sm font-medium">Ask a follow-up question:</div>
+                  <textarea
+                    value={followUpQuestion}
+                    onChange={(e) => setFollowUpQuestion(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        if (followUpQuestion.trim() && !isAnalyzing) {
+                          handleFollowUpAnalyze();
+                        }
+                      }
+                    }}
+                    placeholder=""
+                    className="w-full h-16 px-3 py-2 bg-muted border border-border rounded-lg resize-none text-sm"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleFollowUpAnalyze}
+                      disabled={isAnalyzing || !followUpQuestion.trim()}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+                    >
+                      {isAnalyzing ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          Analyzing...
+                        </>
+                      ) : (
+                        <>
+                          <Wand2 className="w-4 h-4" />
+                          Ask Follow-up
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setAnalyzeQuestion('');
+                        setAnalyzeAnswer('');
+                        setShowDetailedAnalysis(false);
+                        setFollowUpQuestion('');
+                      }}
+                      className="px-4 py-2 bg-muted text-foreground rounded-lg font-medium hover:bg-muted/80 transition-colors"
+                    >
+                      New Question
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         );
 

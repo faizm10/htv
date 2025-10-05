@@ -7,7 +7,7 @@ Your AI wingman for ghosting and dry chats. A spooky-playful SaaS that keeps con
 1. **"This is GhostWing — an AI wingman for ghosting/dry chats."**
 2. Open "Jamie" → **GhostBadge 92** (hard haunt) + "63 days since reply."
 3. Type "hey" → **Dryness banner** pops → choose playful chip → send.
-4. Open **Alex → Nudge** → generate 3 options → send one. *(Confetti as score drops)*
+4. Open **Alex → Analyze** → generate 3 options → send one. *(Confetti as score drops)*
 5. Show **Insights**: "Your replies get drier after 11pm."
 6. Click **Exit** → paste polite boundary → "Ghost contained. Nice."
 
@@ -68,7 +68,7 @@ Your AI wingman for ghosting and dry chats. A spooky-playful SaaS that keeps con
 - One-click insertion into composer
 
 ### AIBox
-- **Nudge**: Low-risk conversation starters
+- **Analyze**: Low-risk conversation starters
 - **Rewrite**: Multiple draft variants
 - **Exit**: Polite boundary messages
 - **Insights**: Analytics and trends

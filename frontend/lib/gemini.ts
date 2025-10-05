@@ -112,13 +112,13 @@ export async function generateNudge(ctx: { context: string }) {
 
 Create 3 low-risk nudges based on this context: ${ctx.context}
 
-Each nudge should:
+Each analyze should:
 - Be under 120 characters
 - Offer 2 concrete options
 - Include an easy opt-out
 - Be friendly and non-pressuring
 
-IMPORTANT: Return ONLY the 3 nudge options, one per line, with no numbering, bullets, or extra text.
+IMPORTANT: Return ONLY the 3 analyze options, one per line, with no numbering, bullets, or extra text.
 
 Example format:
 Hey! Coffee or drinks this week? No worries if you're swamped ☕
@@ -139,7 +139,7 @@ How's it going? Free for a quick coffee this week? No pressure!`;
     
     return lines;
   } catch (error) {
-    console.error('Gemini nudge error:', error);
+    console.error('Gemini analyze error:', error);
     return [
       "Hey! Coffee or drinks this week? No worries if you're swamped ☕",
       "Want to catch up soon? I'm free Wed/Thu evening if you are 😊",
