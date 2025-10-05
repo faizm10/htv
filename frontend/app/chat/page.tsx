@@ -764,27 +764,15 @@ function ChatContent() {
                 <p className="text-muted-foreground mb-6">
                   Choose a chat from the sidebar to start managing your ghosting risks
                 </p>
-                <div className="flex gap-4 justify-center">
-                  <button
-                    onClick={() => handleConversationSelect('jamie')}
-                    className="px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
-                  >
-                    Fix Jamie's Chat (92% Risk)
-                  </button>
-                  <button
-                    onClick={() => handleConversationSelect('alex')}
-                    className="px-6 py-3 bg-muted text-foreground rounded-lg font-medium hover:bg-muted/80 transition-colors"
-                  >
-                    Healthy Chat (Alex)
-                  </button>
-                </div>
+                  
+                
               </motion.div>
             </div>
           )}
         </div>
 
         {/* Right Panel - AI Sidekick */}
-        {aiAssistanceEnabled && (
+        {aiAssistanceEnabled && selectedConversation && (
           <div className="hidden xl:block w-96 border-l border-border overflow-hidden">
             <div className="h-full overflow-y-auto">
               <AIBox
