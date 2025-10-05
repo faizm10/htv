@@ -148,7 +148,9 @@ export default function InvitePage({ params }: InvitePageProps) {
           },
           context: {},
           metrics: {},
-          settings: {}
+          settings: {},
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         })
         .select()
         .single();

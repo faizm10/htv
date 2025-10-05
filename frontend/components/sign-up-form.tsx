@@ -65,7 +65,9 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
         },
         context: {},
         metrics: {},
-        settings: {}
+        settings: {},
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
       
       console.log('💬 Conversation data:', conversationData);

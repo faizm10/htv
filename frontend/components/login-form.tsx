@@ -64,7 +64,9 @@ export function LoginForm({ className, ...props }: React.ComponentPropsWithoutRe
         },
         context: {},
         metrics: {},
-        settings: {}
+        settings: {},
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
       
       console.log('💬 Conversation data:', conversationData);
