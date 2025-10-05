@@ -276,14 +276,14 @@ ${messages}
   `.trim();
 }
 
-// Create comprehensive analysis prompt for Gemini
+// Create optimized analysis prompt for Gemini (removed sections for speed)
 function createAnalysisPrompt(conversationContext: string): string {
   return `
-You are an expert conversation analyst and relationship coach. Analyze this conversation data and provide deep insights about communication patterns, relationship health, and actionable recommendations.
+Analyze this conversation data and provide insights about communication patterns and relationship health.
 
 ${conversationContext}
 
-Please provide a comprehensive analysis in the following JSON format:
+Provide analysis in this JSON format:
 
 {
   "overallHealth": "healthy|warning|critical",
@@ -319,31 +319,12 @@ Please provide a comprehensive analysis in the following JSON format:
   ],
   "summary": {
     "conversationMomentum": "increasing|stable|decreasing",
-    "keyTopics": ["topic1", "topic2"],
-    "relationshipStage": "new|developing|established|declining"
-  },
-  "insights": {
-    "strengths": ["what's working well"],
-    "concerns": ["potential issues"],
-    "opportunities": ["growth areas"],
-    "risks": ["things to watch out for"]
-  },
-  "suggestions": {
-    "immediate": ["quick wins"],
-    "shortTerm": ["next steps"],
-    "longTerm": ["strategic advice"]
+    "totalMessages": number,
+    "conversationDuration": "days"
   }
 }
 
-Focus on:
-1. Communication patterns and timing
-2. Engagement levels and response rates
-3. Conversation quality and depth
-4. Relationship dynamics and health
-5. Specific, actionable recommendations
-6. Risk factors for ghosting or disengagement
-
-Be specific, practical, and empathetic in your analysis.
+Focus on communication patterns, engagement levels, and basic health metrics. Be concise and practical.
   `.trim();
 }
 
@@ -372,25 +353,14 @@ function parseAIResponse(aiResponse: string): any {
     }
     
     console.log('⚠️ [Insights] No JSON match found, using fallback structure');
-    // Fallback: return basic structure
+    // Fallback: return basic structure (optimized)
     return {
       overallHealth: 'warning',
       participants: [],
       summary: {
         conversationMomentum: 'stable',
-        keyTopics: [],
-        relationshipStage: 'developing'
-      },
-      insights: {
-        strengths: [],
-        concerns: [],
-        opportunities: [],
-        risks: []
-      },
-      suggestions: {
-        immediate: [],
-        shortTerm: [],
-        longTerm: []
+        totalMessages: 0,
+        conversationDuration: '0 days'
       }
     };
   } catch (error) {

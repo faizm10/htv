@@ -9,16 +9,11 @@ import {
   Clock, 
   MessageSquare, 
   Users, 
-  Heart, 
-  AlertTriangle, 
-  CheckCircle, 
-  XCircle,
-  ChevronDown,
   ChevronRight,
-  Sparkles,
-  Target,
-  Lightbulb,
-  Shield
+  XCircle,
+  CheckCircle,
+  AlertTriangle,
+  Lightbulb
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ConversationInsight, UserInsight } from '@/lib/conversation-insights-service';
@@ -190,52 +185,9 @@ export function InsightsDashboard({ insights, className }: InsightsDashboardProp
               </motion.div>
             </div>
 
-                {/* Relationship Stage */}
-                <motion.div 
-                  className="bg-gradient-to-r from-pink-50 to-rose-50 dark:from-pink-950/20 dark:to-rose-950/20 p-3 rounded-lg border border-pink-200/50 dark:border-pink-800/30"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 }}
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="p-1.5 bg-pink-500/10 rounded-md">
-                      <Heart className="w-4 h-4 text-pink-600 dark:text-pink-400" />
-                    </div>
-                    <span className="text-xs font-semibold text-pink-800 dark:text-pink-200">Relationship Stage</span>
-                  </div>
-                  <div className="text-sm font-bold text-pink-900 dark:text-pink-100 capitalize">{insights.summary.relationshipStage}</div>
-                </motion.div>
+                {/* Removed Relationship Stage section */}
 
-                {/* Key Topics */}
-                {insights.summary.keyTopics.length > 0 && (
-                  <motion.div 
-                    className="bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-950/20 dark:to-blue-950/20 p-3 rounded-lg border border-indigo-200/50 dark:border-indigo-800/30"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="p-1.5 bg-indigo-500/10 rounded-md">
-                        <Target className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                      </div>
-                      <span className="text-xs font-semibold text-indigo-800 dark:text-indigo-200">Key Topics</span>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {insights.summary.keyTopics.map((topic, index) => (
-                        <motion.span
-                          key={index}
-                          className="px-2 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200 text-xs font-medium rounded-full border border-indigo-200 dark:border-indigo-700"
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: 0.3 + index * 0.1 }}
-                          whileHover={{ scale: 1.05 }}
-                        >
-                          {topic}
-                        </motion.span>
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
+                {/* Removed Key Topics section */}
               </div>
             </motion.div>
           )}
@@ -410,188 +362,9 @@ export function InsightsDashboard({ insights, className }: InsightsDashboardProp
         </AnimatePresence>
       </motion.div>
 
-      {/* Insights Section */}
-      <motion.div
-        className="bg-background border border-border rounded-lg overflow-hidden"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-      >
-        <button
-          onClick={() => toggleSection('insights')}
-          className="w-full flex items-center justify-between p-4 hover:bg-gradient-to-r hover:from-primary/5 hover:to-primary/10 transition-all duration-200 rounded-lg"
-        >
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Sparkles className="w-5 h-5 text-primary" />
-            </div>
-            <h3 className="font-semibold text-lg">AI Insights</h3>
-          </div>
-          <motion.div
-            animate={{ rotate: expandedSections.has('insights') ? 90 : 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            <ChevronRight className="w-5 h-5 text-muted-foreground" />
-          </motion.div>
-        </button>
-        
-        <AnimatePresence>
-          {expandedSections.has('insights') && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="border-t border-border"
-            >
-              <div className="p-4 space-y-4">
-                {/* Strengths */}
-                {insights.insights.strengths.length > 0 && (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                    <div className="flex items-center gap-2 mb-2">
-                      <CheckCircle className="w-4 h-4 text-green-600" />
-                      <span className="text-sm font-medium text-green-800">Strengths</span>
-                    </div>
-                    <div className="space-y-1">
-                      {insights.insights.strengths.map((strength, index) => (
-                        <div key={index} className="text-xs text-green-700">• {strength}</div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+      {/* Removed AI Insights section */}
 
-                {/* Concerns */}
-                {insights.insights.concerns.length > 0 && (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                    <div className="flex items-center gap-2 mb-2">
-                      <AlertTriangle className="w-4 h-4 text-yellow-600" />
-                      <span className="text-sm font-medium text-yellow-800">Concerns</span>
-                    </div>
-                    <div className="space-y-1">
-                      {insights.insights.concerns.map((concern, index) => (
-                        <div key={index} className="text-xs text-yellow-700">• {concern}</div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Opportunities */}
-                {insights.insights.opportunities.length > 0 && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Target className="w-4 h-4 text-blue-600" />
-                      <span className="text-sm font-medium text-blue-800">Opportunities</span>
-                    </div>
-                    <div className="space-y-1">
-                      {insights.insights.opportunities.map((opportunity, index) => (
-                        <div key={index} className="text-xs text-blue-700">• {opportunity}</div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Risks */}
-                {insights.insights.risks.length > 0 && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Shield className="w-4 h-4 text-red-600" />
-                      <span className="text-sm font-medium text-red-800">Risks</span>
-                    </div>
-                    <div className="space-y-1">
-                      {insights.insights.risks.map((risk, index) => (
-                        <div key={index} className="text-xs text-red-700">• {risk}</div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
-
-      {/* Suggestions Section */}
-      <motion.div
-        className="bg-background border border-border rounded-lg overflow-hidden"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-      >
-        <button
-          onClick={() => toggleSection('suggestions')}
-          className="w-full flex items-center justify-between p-4 hover:bg-gradient-to-r hover:from-primary/5 hover:to-primary/10 transition-all duration-200 rounded-lg"
-        >
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Lightbulb className="w-5 h-5 text-primary" />
-            </div>
-            <h3 className="font-semibold text-lg">Actionable Suggestions</h3>
-          </div>
-          <motion.div
-            animate={{ rotate: expandedSections.has('suggestions') ? 90 : 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            <ChevronRight className="w-5 h-5 text-muted-foreground" />
-          </motion.div>
-        </button>
-        
-        <AnimatePresence>
-          {expandedSections.has('suggestions') && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="border-t border-border"
-            >
-              <div className="p-4 space-y-4">
-                {/* Immediate Actions */}
-                {insights.suggestions.immediate.length > 0 && (
-                  <div>
-                    <div className="text-sm font-medium mb-2 text-green-600">Immediate Actions</div>
-                    <div className="space-y-2">
-                      {insights.suggestions.immediate.map((suggestion, index) => (
-                        <div key={index} className="flex items-start gap-2 p-2 bg-green-50 border border-green-200 rounded-lg">
-                          <div className="w-2 h-2 bg-green-600 rounded-full mt-2 flex-shrink-0" />
-                          <div className="text-xs text-green-800">{suggestion}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Short Term */}
-                {insights.suggestions.shortTerm.length > 0 && (
-                  <div>
-                    <div className="text-sm font-medium mb-2 text-blue-600">Short Term (1-2 weeks)</div>
-                    <div className="space-y-2">
-                      {insights.suggestions.shortTerm.map((suggestion, index) => (
-                        <div key={index} className="flex items-start gap-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
-                          <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0" />
-                          <div className="text-xs text-blue-800">{suggestion}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Long Term */}
-                {insights.suggestions.longTerm.length > 0 && (
-                  <div>
-                    <div className="text-sm font-medium mb-2 text-purple-600">Long Term (1+ months)</div>
-                    <div className="space-y-2">
-                      {insights.suggestions.longTerm.map((suggestion, index) => (
-                        <div key={index} className="flex items-start gap-2 p-2 bg-purple-50 border border-purple-200 rounded-lg">
-                          <div className="w-2 h-2 bg-purple-600 rounded-full mt-2 flex-shrink-0" />
-                          <div className="text-xs text-purple-800">{suggestion}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
+      {/* Removed Actionable Suggestions section */}
     </div>
   );
 }
