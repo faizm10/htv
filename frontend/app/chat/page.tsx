@@ -160,8 +160,8 @@ function ChatContent() {
       const legacyConversations: any[] = [];
 
       for (const conversation of supabaseConversations) {
-        // Get the participant that is NOT the current user for display purposes
-        const otherUserId = conversation.participants.find(id => id !== user.id);
+        // Get the first participant as the "other user" for display purposes
+        const otherUserId = conversation.participants[0];
         if (otherUserId) {
           const [otherUser, messages] = await Promise.all([
             supabaseDatabase.getUser(otherUserId),

@@ -418,15 +418,42 @@ export function AIBox({ currentDraft, lastMessages, metrics, conversationId, cla
     }
   }, [activeTab, conversationId]);
 
-  // Clear insights when conversation changes
+  // Clear all tab states when conversation changes
   useEffect(() => {
-    console.log('🧹 [AI Box] Conversation changed, clearing insights state:', conversationId);
+    console.log('🧹 [AI Box] Conversation changed, resetting all tab states:', conversationId);
+    
+    // Reset to default tab
+    setActiveTab('analyze');
+    
+    // Clear analyze tab state
+    setAnalyzeQuestion('');
+    setAnalyzeAnswer('');
+    setIsAnalyzing(false);
+    setShowDetailedAnalysis(false);
+    setFollowUpQuestion('');
+    
+    // Clear rewrite tab state
+    setRewriteMessage('');
+    setCustomVibe('');
+    setSelectedVibe('');
+    setIsDropdownOpen(false);
+    setFocusedVibeIndex(-1);
+    setSuggestions([]);
+    
+    // Reset other states
+    setIsGenerating(false);
+    setInsightsLoading(false);
+    setIsRefreshing(false);
+    setConversationInsightsLoading(false);
+    
+    // Clear insights state
     setInsights(null);
     setInsightsError(null);
     setConversationInsights(null);
     setConversationInsightsError(null);
     setUseNewInsights(true); // Reset to new insights system for new conversation
-    console.log('✅ [AI Box] Insights state cleared and reset to AI Enhanced mode');
+    
+    console.log('✅ [AI Box] All tab states reset to default');
   }, [conversationId]);
 
   const renderTabContent = () => {
